@@ -1,0 +1,13 @@
+{
+  "name": "weather-kin",
+  "version": "1.0.0",
+  "description": "Periodically updates a Kindroid AI's current scene with live weather data",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "MIT"
+}
