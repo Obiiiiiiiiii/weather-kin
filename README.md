@@ -13,8 +13,8 @@ Uses [Open-Meteo](https://open-meteo.com/) — a free weather API that requires 
 ## What you'll need
 
 - A [Kindroid](https://kindroid.ai/) account
-- Your **Kindroid API key** (found in Kindroid app settings)
-- Your **kin's AI ID** (found on the kin's profile page)
+- Your **Kindroid API key** (found at the bottom of the general settings tab in Kindroid app)
+- Your **kin's AI ID** (found just below the API key)
 - A free [GitHub](https://github.com/) account
 - A free [Railway](https://railway.com/) account
 
@@ -30,9 +30,9 @@ Uses [Open-Meteo](https://open-meteo.com/) — a free weather API that requires 
 
 ## Step 2: Find your Kindroid API key and AI ID
 
-1. Open the **Kindroid app** and go to **Settings**.
-2. Scroll down to find your **API key** — copy it somewhere safe.
-3. Go to your **kin's profile page** and copy the **AI ID** from the URL or profile info.
+1. Open the **Kindroid app** and go to **General** tab.
+2. Scroll down to the very bottom to find your **API key** — copy it somewhere safe.
+3. Copy your Kin's **AI ID**.
 
 > You'll paste both of these into Railway in the next step.
 
