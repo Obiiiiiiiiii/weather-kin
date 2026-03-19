@@ -24,7 +24,7 @@ Uses [Open-Meteo](https://open-meteo.com/) — a free weather API that requires 
 
 ## Step 1: Fork the repo
 
-1. Go to the [weather-kin GitHub repo](https://github.com/ApocryphalWord/weather-kin).
+1. Go to the [weather-kin GitHub repo](https://github.com/Obiiiiiiiiii/weather-kin).
 2. Click the **Fork** button in the top right.
 3. This creates your own copy of the code on GitHub.
 
