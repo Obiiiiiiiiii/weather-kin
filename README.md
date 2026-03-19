@@ -61,7 +61,6 @@ Go to your service's **Variables** tab and add the following:
 |---|---|---|
 | `KINDROID_API_KEY` | `your-api-key` | Your Kindroid API key |
 | `KINDROID_AI_ID` | `your-ai-id` | Your kin's AI ID |
-| `LOCATION_NAME` | `Seabreak` | The name shown in the weather scene |
 | `LATITUDE` | `49.16` | Your location's latitude |
 | `LONGITUDE` | `-123.94` | Your location's longitude |
 | `TZ` | `America/Vancouver` | Your timezone ([list of timezones](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)) |
@@ -70,10 +69,11 @@ Go to your service's **Variables** tab and add the following:
 
 | Variable | Default | Description |
 |---|---|---|
+| `LOCATION_NAME` | *(none)* | Location name shown in the scene (e.g. `Seabreak`) |
+| `LOCATION_REGION` | *(none)* | Region/state for seasonal context (e.g. `British Columbia`) |
 | `TEMPERATURE_UNIT` | `celsius` | `celsius` or `fahrenheit` |
 | `WIND_SPEED_UNIT` | `kmh` | `kmh` or `mph` |
 | `UPDATE_HOURS` | `0,6,12,18` | Comma-separated hours (0–23) to update weather |
-| `LOCATION_REGION` | `British Columbia` | Region or country can be put here |
 
 Here's what it looks like on Railway:
 
