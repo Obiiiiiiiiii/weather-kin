@@ -4,15 +4,15 @@
 // Required env vars:
 //   KINDROID_API_KEY    - Your Kindroid API key
 //   KINDROID_AI_ID      - Kin's AI ID
-//   LOCATION_NAME       - Display name for the location (e.g. "Seabreak")
 //   LATITUDE            - Location latitude (e.g. 49.16)
 //   LONGITUDE           - Location longitude (e.g. -123.94)
 //
 // Optional env vars:
+//   LOCATION_NAME       - Display name for the location (e.g. "Seabreak")
+//   LOCATION_REGION     - Region/state for seasonal context (e.g. "British Columbia")
 //   TEMPERATURE_UNIT    - "celsius" or "fahrenheit" (default: celsius)
 //   WIND_SPEED_UNIT     - "kmh" or "mph" (default: kmh)
 //   UPDATE_HOURS        - Comma-separated hours to update (default: "0,6,12,18")
-//   LOCATION_REGION     - Region/state for seasonal context (e.g. "British Columbia")
 //
 // No weather API key needed (Open-Meteo is free and requires no account).
 
@@ -38,7 +38,7 @@ function optionalEnv(name, fallback) {
 const CONFIG = {
   kindroidKey: requiredEnv("KINDROID_API_KEY"),
   aiId: requiredEnv("KINDROID_AI_ID"),
-  locationName: requiredEnv("LOCATION_NAME"),
+  locationName: optionalEnv("LOCATION_NAME", ""),
   latitude: requiredEnv("LATITUDE"),
   longitude: requiredEnv("LONGITUDE"),
   temperatureUnit: optionalEnv("TEMPERATURE_UNIT", "celsius"),
@@ -139,10 +139,9 @@ function formatScene(data) {
   const conditions = WMO_CONDITIONS.get(code) || "unknown conditions";
   const windLine = describeWind(wind);
 
-  const location = CONFIG.locationRegion
-    ? `${CONFIG.locationName}, ${CONFIG.locationRegion}`
-    : CONFIG.locationName;
-  let scene = `It's currently ${temp}${TEMP_SYMBOL} and ${conditions} in ${location}.`;
+  const locationParts = [CONFIG.locationName, CONFIG.locationRegion].filter(Boolean);
+  const locationSuffix = locationParts.length ? ` in ${locationParts.join(", ")}` : " here";
+  let scene = `It's currently ${temp}${TEMP_SYMBOL} and ${conditions}${locationSuffix}.`;
   if (windLine) scene += ` ${windLine}`;
 
   return scene;
