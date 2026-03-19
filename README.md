@@ -6,7 +6,9 @@ Uses [Open-Meteo](https://open-meteo.com/) — a free weather API that requires 
 
 ### Example
 
-> It's currently 12°C and rainy outside, with a light breeze.
+> It's currently 12°C and rainy outside, with strong winds.
+
+> Today's forecast for Seabreak, British Columbia: a high of 14°C and a low of 5°C, rainy. It's expected to be windy.
 
 ---
 
@@ -22,7 +24,7 @@ Uses [Open-Meteo](https://open-meteo.com/) — a free weather API that requires 
 
 ## Step 1: Fork the repo
 
-1. Go to the [weather-kin GitHub repo](https://github.com/Obiiiiiiiiii/weather-kin).
+1. Go to the [weather-kin GitHub repo](https://github.com/ApocryphalWord/weather-kin).
 2. Click the **Fork** button in the top right.
 3. This creates your own copy of the code on GitHub.
 
@@ -74,6 +76,7 @@ Go to your service's **Variables** tab and add the following:
 | `TEMPERATURE_UNIT` | `celsius` | `celsius` or `fahrenheit` |
 | `WIND_SPEED_UNIT` | `kmh` | `kmh` or `mph` |
 | `UPDATE_HOURS` | `0,6,12,18` | Comma-separated hours (0–23) to update weather |
+| `FORECAST_HOUR` | *(none)* | Hour (0–23) to send a daily forecast instead of current conditions |
 
 Here's what it looks like on Railway:
 
@@ -103,6 +106,7 @@ Here's what it looks like on Railway:
 - **Want updates every 3 hours?** Set `UPDATE_HOURS` to `0,3,6,9,12,15,18,21`.
 - **Want just morning and evening?** Set `UPDATE_HOURS` to `8,20`.
 - **Using Fahrenheit and mph?** Set `TEMPERATURE_UNIT=fahrenheit` and `WIND_SPEED_UNIT=mph`.
+- **Want a morning forecast?** Set `FORECAST_HOUR=7` to get the day's high, low, and conditions at 7am. All other update hours still give current conditions.
 
 ---
 
@@ -110,10 +114,13 @@ Here's what it looks like on Railway:
 
 1. Fetches current weather from Open-Meteo for your configured coordinates.
 2. Converts the WMO weather code, temperature, and wind speed into a natural-language sentence.
-3. Pushes that sentence to your kin's Current Setting via the Kindroid API.
-4. Waits until the next scheduled hour and repeats.
+3. If `FORECAST_HOUR` is set and it's that hour, sends a daily forecast (high, low, conditions, wind) instead.
+4. Pushes the scene to your kin's Current Setting via the Kindroid API.
+5. Waits until the next scheduled hour and repeats.
 
 If a fetch fails, the last successful scene is kept until the next successful update.
+
+**Note:** Location name and region are optional. If set, they appear in the scene (e.g. *"here in Seabreak, British Columbia"*). If not, current conditions say *"outside"* and forecasts just say *"Today's forecast:"* — useful if the location is already in your kin's backstory.
 
 ---
 
