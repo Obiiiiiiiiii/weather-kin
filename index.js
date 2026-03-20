@@ -100,7 +100,7 @@ const WMO_CONDITIONS = new Map([
   [53, "drizzling"],
   [55, "drizzling"],
   [56, "freezing drizzle"],
-  [58, "freezing drizzle"],
+  [57, "freezing drizzle"],
   [61, "rainy"],
   [63, "rainy"],
   [65, "rainy"],
@@ -134,19 +134,18 @@ function describeWind(speed) {
   return "with heavy gusts";
 }
 
+const WIND_FORMS = new Map([
+  ["with a light breeze", { label: "light breeze", bare: "a light breeze" }],
+  ["with strong winds",   { label: "strong winds",  bare: "strong winds" }],
+  ["with heavy gusts",    { label: "heavy gusts",   bare: "heavy gusts" }],
+]);
+
 function windLabel(windPart) {
-  if (windPart === null) return "null";
-  if (windPart === "with a light breeze") return "light breeze";
-  if (windPart === "with strong winds") return "strong winds";
-  if (windPart === "with heavy gusts") return "heavy gusts";
-  return "null";
+  return WIND_FORMS.get(windPart)?.label ?? "null";
 }
 
 function bareWindLabel(windPart) {
-  if (windPart === "with a light breeze") return "a light breeze";
-  if (windPart === "with strong winds") return "strong winds";
-  if (windPart === "with heavy gusts") return "heavy gusts";
-  return null;
+  return WIND_FORMS.get(windPart)?.bare ?? null;
 }
 
 // --- Transition System: Layer 2 — Lateral moves ---
@@ -354,16 +353,25 @@ const RETRY_DELAY_MS = 10000;
 
 async function fetchWeather() {
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    const res = await fetch(OPEN_METEO_URL, { signal: AbortSignal.timeout(15000) });
-    if (res.ok) return res.json();
+    try {
+      const res = await fetch(OPEN_METEO_URL, { signal: AbortSignal.timeout(15000) });
+      if (res.ok) return res.json();
 
-    const body = await res.text();
-    if (attempt < MAX_RETRIES && res.status >= 500) {
-      console.log(`Open-Meteo ${res.status}, retrying in ${RETRY_DELAY_MS / 1000}s (attempt ${attempt}/${MAX_RETRIES})...`);
-      await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
-      continue;
+      const body = await res.text();
+      if (attempt < MAX_RETRIES && res.status >= 500) {
+        console.log(`Open-Meteo ${res.status}, retrying in ${RETRY_DELAY_MS / 1000}s (attempt ${attempt}/${MAX_RETRIES})...`);
+        await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+        continue;
+      }
+      throw new Error(`Open-Meteo ${res.status}: ${body}`);
+    } catch (err) {
+      if (attempt < MAX_RETRIES) {
+        console.log(`Fetch error: ${err.message}, retrying in ${RETRY_DELAY_MS / 1000}s (attempt ${attempt}/${MAX_RETRIES})...`);
+        await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+        continue;
+      }
+      throw err;
     }
-    throw new Error(`Open-Meteo ${res.status}: ${body}`);
   }
 }
 
@@ -374,7 +382,8 @@ function buildLocationParts() {
 // --- State persistence ---
 // Saves transition state to disk so restarts don't lose context.
 
-const STATE_FILE = path.join(__dirname, ".weather-state.json");
+const STATE_DIR = fs.existsSync("/app/data") ? "/app/data" : __dirname;
+const STATE_FILE = path.join(STATE_DIR, ".weather-state.json");
 
 function loadState() {
   try {
@@ -637,7 +646,11 @@ function scheduleNext() {
   const hh = time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   console.log(`Next update at ${hh} (in ${Math.round(ms / 60000)} min)`);
   setTimeout(async () => {
-    await tick();
+    try {
+      await tick();
+    } catch (err) {
+      console.error(`Unexpected tick error: ${err.message}`);
+    }
     scheduleNext();
   }, ms);
 }
