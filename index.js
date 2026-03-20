@@ -195,6 +195,30 @@ const LATERAL_TRANSITIONS = new Map([
   ["freezing rain->snowing", "The freezing rain has turned to snow."],
   ["snowing->freezing drizzle", "The snow has turned to freezing drizzle."],
   ["freezing drizzle->snowing", "The freezing drizzle has turned to snow."],
+
+  // Rain <-> Fog
+  ["rainy->foggy", "The rain has lifted; fog is settling in."],
+  ["foggy->rainy", "The fog is lifting; rain is moving in."],
+
+  // Fog <-> Drizzle
+  ["foggy->drizzling", "The fog is turning to drizzle."],
+  ["drizzling->foggy", "The drizzle has lifted; fog is settling in."],
+
+  // Freezing drizzle <-> Freezing rain
+  ["freezing drizzle->freezing rain", "The freezing drizzle is picking up to freezing rain."],
+  ["freezing rain->freezing drizzle", "The freezing rain has eased to freezing drizzle."],
+
+  // Showers <-> Snow
+  ["showery->snowing", "The showers have turned to snow."],
+  ["showery->snowing lightly", "The showers have turned to light snow."],
+  ["showery->snowing heavily", "The showers have turned to heavy snow."],
+  ["snowing->showery", "The snow has turned to showers."],
+  ["snowing lightly->showery", "The snow has turned to showers."],
+  ["snowing heavily->showery", "The snow has turned to showers."],
+
+  // Showers <-> Freezing rain
+  ["showery->freezing rain", "The showers have turned to freezing rain."],
+  ["freezing rain->showery", "The freezing rain has turned to showers."],
 ]);
 
 // --- Transition System: Layer 3 — Severity-ranked escalation/de-escalation ---
@@ -469,8 +493,16 @@ function formatScene(data) {
       }
     }
 
+    if (!scene && conditionDirection === "lateral") {
+      // Lateral + wind: period-join (laterals may already contain semicolons)
+      // Drop wind from base on escalation (transition announces it);
+      // keep wind in base on de-escalation (transition describes what left).
+      const windInBase = windDirection === "deescalation" && windPart ? `, ${windPart}` : "";
+      scene = `It's currently ${temp}${TEMP_SYMBOL}${locationSuffix}${windInBase}. ${conditionTransition} ${windTransition}`;
+    }
+
     if (!scene) {
-      // Cross-direction or lateral + wind: semicolon-join
+      // Cross-direction: semicolon-join
       const includeConditionInBase = conditionDirection === "deescalation";
       const includeWindInBase = windDirection === "deescalation";
       const effectiveWindPart = includeWindInBase && windPart ? `, ${windPart}` : "";
