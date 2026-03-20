@@ -18,6 +18,8 @@
 // No weather API key needed (Open-Meteo is free and requires no account).
 
 const http = require("http");
+const fs = require("fs");
+const path = require("path");
 
 const KINDROID_BASE = "https://api.kindroid.ai/v1";
 
@@ -339,12 +341,47 @@ function buildLocationParts() {
   return [CONFIG.locationName, CONFIG.locationRegion].filter(Boolean);
 }
 
+// --- State persistence ---
+// Saves transition state to disk so restarts don't lose context.
+
+const STATE_FILE = path.join(__dirname, ".weather-state.json");
+
+function loadState() {
+  try {
+    const raw = fs.readFileSync(STATE_FILE, "utf-8");
+    const saved = JSON.parse(raw);
+    console.log("Restored state from disk.");
+    return {
+      lastCondition: saved.lastCondition ?? UNSET,
+      lastWindDescription: saved.lastWindDescription === undefined ? UNSET : saved.lastWindDescription,
+      lastScene: saved.lastScene ?? null,
+    };
+  } catch {
+    return { lastCondition: UNSET, lastWindDescription: UNSET, lastScene: null };
+  }
+}
+
+function saveState() {
+  const data = {
+    lastCondition: lastCondition === UNSET ? undefined : lastCondition,
+    lastWindDescription: lastWindDescription === UNSET ? undefined : lastWindDescription,
+    lastScene,
+    savedAt: new Date().toISOString(),
+  };
+  try {
+    fs.writeFileSync(STATE_FILE, JSON.stringify(data), "utf-8");
+  } catch (err) {
+    console.error(`Failed to save state: ${err.message}`);
+  }
+}
+
 // --- Transition state (persists between ticks) ---
 // UNSET distinguishes "never observed" from "observed as null (calm)".
 
 const UNSET = Symbol("unset");
-let lastCondition = UNSET;
-let lastWindDescription = UNSET;
+const restored = loadState();
+let lastCondition = restored.lastCondition;
+let lastWindDescription = restored.lastWindDescription;
 
 // --- Scene formatting with transitions ---
 
@@ -569,7 +606,7 @@ function scheduleNext() {
 
 // --- Main loop ---
 
-let lastScene = null;
+let lastScene = restored.lastScene;
 
 async function tick() {
   const timestamp = new Date().toISOString();
@@ -582,6 +619,7 @@ async function tick() {
     console.log(`[${timestamp}] Scene: "${lastScene}"`);
 
     await updateCurrentScene(lastScene);
+    saveState();
     console.log(`[${timestamp}] Kindroid updated.`);
   } catch (err) {
     console.error(`[${timestamp}] Error: ${err.message}`);
