@@ -168,15 +168,29 @@
     mat.polygonOffsetFactor = 2;
     mat.polygonOffsetUnits = 2;
 
-    // Load country polygons
+    // Load country polygons + border lines
     fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")
       .then((r) => r.json())
       .then((world) => {
-        if (typeof topojson !== "undefined") {
-          globe.polygonsData(topojson.feature(world, world.objects.countries).features);
-        } else {
+        if (typeof topojson === "undefined") {
           console.error("topojson library not loaded");
+          return;
         }
+        // Country fills
+        globe.polygonsData(topojson.feature(world, world.objects.countries).features);
+        // Border lines as a separate path layer (no z-fighting)
+        const borders = topojson.mesh(world, world.objects.countries, (a, b) => a !== b);
+        const paths = borders.coordinates.map((line) =>
+          line.map(([lng, lat]) => ({ lat, lng }))
+        );
+        globe
+          .pathsData(paths)
+          .pathPoints((d) => d)
+          .pathPointLat("lat")
+          .pathPointLng("lng")
+          .pathColor(() => "#0a0e17")
+          .pathStroke(0.5)
+          .pathTransitionDuration(0);
       })
       .catch((err) => console.error("Failed to load country data:", err));
 
