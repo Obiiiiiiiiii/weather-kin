@@ -138,13 +138,14 @@
   function initGlobe() {
     const container = document.getElementById("globe");
     globe = Globe()(container)
-      .backgroundColor("#00000000")
+      .backgroundColor("rgba(0,0,0,0)")
       .globeMaterial((() => {
         const m = new THREE.MeshPhongMaterial();
         m.color = new THREE.Color("#0a0e17");
         return m;
       })())
       .showAtmosphere(false)
+      .atmosphereAltitude(0)
       .polygonCapColor(() => "#d1d5de")
       .polygonSideColor(() => "#0a0e17")
       .polygonStrokeColor(() => "#0a0e17")
@@ -173,12 +174,16 @@
       });
 
     // Load country polygons
-    fetch("https://unpkg.com/world-atlas@2/countries-110m.json")
+    fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")
       .then((r) => r.json())
       .then((world) => {
-        const countries = topojson.feature(world, world.objects.countries).features;
-        globe.polygonsData(countries);
-      });
+        if (typeof topojson !== "undefined") {
+          globe.polygonsData(topojson.feature(world, world.objects.countries).features);
+        } else {
+          console.error("topojson library not loaded");
+        }
+      })
+      .catch((err) => console.error("Failed to load country data:", err));
 
     // Resize handling
     function resize() {
