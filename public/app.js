@@ -139,11 +139,6 @@
     const container = document.getElementById("globe");
     globe = Globe()(container)
       .backgroundColor("rgba(0,0,0,0)")
-      .globeMaterial((() => {
-        const m = new THREE.MeshPhongMaterial();
-        m.color = new THREE.Color("#0a0e17");
-        return m;
-      })())
       .showAtmosphere(false)
       .atmosphereAltitude(0)
       .polygonCapColor(() => "#d1d5de")
@@ -172,6 +167,10 @@
         setPendingCoords(lat, lng);
         openAddModal();
       });
+
+    // Set ocean color via existing globe material
+    const mat = globe.globeMaterial();
+    mat.color.set("#0a0e17");
 
     // Load country polygons
     fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")
