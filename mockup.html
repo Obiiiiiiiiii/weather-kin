@@ -50,6 +50,25 @@ header h1 {
   letter-spacing: -0.02em;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-settings {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 0.4rem 0.6rem;
+  border-radius: var(--radius);
+  font-size: 1rem;
+  line-height: 1;
+  transition: all 0.15s;
+}
+.btn-settings:hover { color: var(--text); background: var(--surface-hover); border-color: var(--accent); }
+
 /* --- Buttons --- */
 .btn-primary {
   cursor: pointer;
@@ -126,35 +145,6 @@ header h1 {
 }
 #location-search::placeholder { color: var(--text-dim); }
 #location-search:focus { border-color: var(--accent); }
-
-/* --- Globe Placeholder --- */
-.globe-placeholder {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 420px;
-  height: 420px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #1e2840 0%, #0d1220 70%, #080c15 100%);
-  border: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.globe-placeholder span {
-  color: var(--text-dim);
-  font-size: 0.9rem;
-  font-weight: 500;
-}
-
-.globe-placeholder .globe-icon {
-  font-size: 2.5rem;
-  opacity: 0.3;
-}
 
 /* --- Kin Panel --- */
 #kin-panel {
@@ -372,6 +362,11 @@ small {
   border-top: 1px solid var(--border);
 }
 
+/* --- Settings Modal (smaller) --- */
+.settings-modal .modal {
+  width: 400px;
+}
+
 /* --- Responsive --- */
 @media (max-width: 768px) {
   #main-content { flex-direction: column; }
@@ -390,7 +385,6 @@ small {
   }
   .form-row { flex-direction: column; gap: 0; }
   .hour-picker { grid-template-columns: repeat(6, 1fr); }
-  .globe-placeholder { width: 260px; height: 260px; }
 }
 </style>
 </head>
@@ -399,7 +393,10 @@ small {
 <!-- Header -->
 <header>
   <h1>weather-kin</h1>
-  <button class="btn-primary">+ Add Kin</button>
+  <div class="header-actions">
+    <button class="btn-primary">+ Add Kin</button>
+    <button class="btn-settings" title="Settings">&#9881;</button>
+  </div>
 </header>
 
 <!-- Main Content -->
@@ -409,10 +406,6 @@ small {
   <div id="globe-container">
     <div id="search-bar">
       <input type="text" id="location-search" placeholder="Search for a location..." />
-    </div>
-    <div class="globe-placeholder">
-      <span class="globe-icon">&#127758;</span>
-      <span>Interactive 3D Globe</span>
     </div>
   </div>
 
@@ -461,8 +454,8 @@ small {
 
 </div>
 
-<!-- Add Kin Modal (shown overlaid) -->
-<div class="modal-overlay">
+<!-- Add Kin Modal (hidden by default) -->
+<div class="modal-overlay" style="display: none;">
   <div class="modal">
     <div class="modal-header">
       <h2>Add Kin</h2>
@@ -476,11 +469,6 @@ small {
         <div class="form-group">
           <label>Display Name</label>
           <input type="text" placeholder="e.g. Luna, Sol" />
-          <small>Your Kin's name — used as a label on the dashboard</small>
-        </div>
-        <div class="form-group">
-          <label>API Key <span class="required">*</span></label>
-          <input type="password" placeholder="Your Kindroid API key" />
         </div>
         <div class="form-group">
           <label>Kin AI ID <span class="required">*</span></label>
@@ -586,6 +574,59 @@ small {
     </div>
   </div>
 </div>
+
+<!-- Settings Modal (shown) -->
+<div class="modal-overlay settings-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Settings</h2>
+      <button class="modal-close">&times;</button>
+    </div>
+    <div class="form-body">
+      <div class="form-group">
+        <label>Kindroid API Key <span class="required">*</span></label>
+        <input type="password" placeholder="Enter your API key" />
+        <small>Your API key from kindroid.ai/developer — used for all Kins</small>
+      </div>
+      <div class="form-actions">
+        <button class="btn-primary">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Globe.gl -->
+<script src="https://unpkg.com/globe.gl@2.35.1/dist/globe.gl.min.js"></script>
+<script>
+(function() {
+  var container = document.getElementById('globe-container');
+
+  var globe = Globe()
+    .globeImageUrl('https://unpkg.com/three-globe@2.35.0/example/img/earth-blue-marble.jpg')
+    .bumpImageUrl('https://unpkg.com/three-globe@2.35.0/example/img/earth-topology.png')
+    .backgroundImageUrl('https://unpkg.com/three-globe@2.35.0/example/img/night-sky.png')
+    .pointsData([
+      { lat: 49.16, lng: -123.94, name: 'Luna', color: '#5bef8b' },
+      { lat: 45.52, lng: -122.68, name: 'Sol', color: '#5bef8b' }
+    ])
+    .pointColor('color')
+    .pointAltitude(0.02)
+    .pointRadius(0.5)
+    .pointLabel('name')
+    (container);
+
+  // Set initial view to Pacific Northwest
+  globe.pointOfView({ lat: 47, lng: -123, altitude: 2.5 }, 0);
+
+  // Handle resize
+  function onResize() {
+    globe.width(container.clientWidth);
+    globe.height(container.clientHeight);
+  }
+  window.addEventListener('resize', onResize);
+  onResize();
+})();
+</script>
 
 </body>
 </html>
