@@ -204,6 +204,7 @@ small {
   flex: 1;
   position: relative;
   overflow: hidden;
+  background: radial-gradient(circle at 50% 50%, rgba(91, 156, 245, 0.08) 0%, rgba(91, 156, 245, 0.03) 35%, transparent 65%);
 }
 
 #globe {
