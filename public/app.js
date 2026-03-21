@@ -138,9 +138,17 @@
   function initGlobe() {
     const container = document.getElementById("globe");
     globe = Globe()(container)
-      .globeImageUrl("https://unpkg.com/three-globe@2.35.0/example/img/earth-blue-marble.jpg")
-      .bumpImageUrl("https://unpkg.com/three-globe@2.35.0/example/img/earth-topology.png")
-      .backgroundImageUrl("https://unpkg.com/three-globe@2.35.0/example/img/night-sky.png")
+      .backgroundColor("#00000000")
+      .globeMaterial((() => {
+        const m = new THREE.MeshPhongMaterial();
+        m.color = new THREE.Color("#0a0e17");
+        return m;
+      })())
+      .showAtmosphere(false)
+      .polygonCapColor(() => "#d1d5de")
+      .polygonSideColor(() => "#0a0e17")
+      .polygonStrokeColor(() => "#0a0e17")
+      .polygonAltitude(0.005)
       .pointsData([])
       .pointLat("lat")
       .pointLng("lng")
@@ -156,6 +164,14 @@
         // Scroll to that kin's card
         const card = document.querySelector(`[data-kin-id="${point.id}"]`);
         if (card) card.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+
+    // Load country polygons
+    fetch("https://unpkg.com/world-atlas@2/countries-110m.json")
+      .then((r) => r.json())
+      .then((world) => {
+        const countries = topojson.feature(world, world.objects.countries).features;
+        globe.polygonsData(countries);
       });
 
     // Resize handling
