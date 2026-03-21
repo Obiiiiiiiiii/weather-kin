@@ -142,9 +142,9 @@
       .showAtmosphere(false)
       .atmosphereAltitude(0)
       .polygonCapColor(() => "#d1d5de")
-      .polygonSideColor(() => "#0a0e17")
-      .polygonStrokeColor(() => "#0a0e17")
-      .polygonAltitude(0.01)
+      .polygonSideColor(() => "#1a1f2e")
+      .polygonStrokeColor(() => "#1a1f2e")
+      .polygonAltitude(0.012)
       .pointsData([])
       .pointLat("lat")
       .pointLng("lng")
@@ -196,7 +196,7 @@
       id: k.id,
       lat: k.latitude,
       lng: k.longitude,
-      color: k.enabled ? "#5bef8b" : "#8891a5",
+      color: k.enabled ? "#5b9cf5" : "#8891a5",
       label: `<div style="background:rgba(20,25,38,0.9);padding:6px 10px;border-radius:6px;font-size:13px;color:#e4e8f1;border:1px solid #2a3142">
         <strong>${esc(k.name || "Unnamed Kin")}</strong><br>
         <span style="color:#8891a5">${k.latitude.toFixed(2)}, ${k.longitude.toFixed(2)}</span>
@@ -372,6 +372,7 @@
           <span class="kin-card-name">${esc(k.name || "Unnamed Kin")}</span>
           <div class="kin-card-actions">
             <button class="btn-icon" title="Trigger update now" data-trigger="${k.id}">&#x21bb;</button>
+            <button class="btn-icon" title="${k.enabled ? "Pause" : "Resume"}" data-toggle="${k.id}">${k.enabled ? "&#x23F8;" : "&#x25B6;"}</button>
             <button class="btn-icon" title="Edit" data-edit="${k.id}">&#x270E;</button>
             <button class="btn-icon" title="Delete" data-delete="${k.id}">&#x2715;</button>
           </div>
@@ -388,6 +389,15 @@
       .join("");
 
     // Event delegation
+    list.querySelectorAll("[data-toggle]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = btn.dataset.toggle;
+        const kin = kins.find((k) => k.id == id);
+        if (!kin) return;
+        await api("PUT", `/api/kins/${id}`, { enabled: !kin.enabled });
+        await refreshKins();
+      });
+    });
     list.querySelectorAll("[data-edit]").forEach((btn) => {
       btn.addEventListener("click", () => openEditModal(btn.dataset.edit));
     });
