@@ -1,3 +1,6 @@
 node_modules/
 .env
 .weather-state.json
+weather-kin.db
+weather-kin.db-wal
+weather-kin.db-shm
