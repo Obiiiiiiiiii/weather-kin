@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>weather-kin — Dashboard Mockup</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0e17;
+  --surface: #141926;
+  --surface-hover: #1c2333;
+  --border: #2a3142;
+  --text: #e4e8f1;
+  --text-dim: #8891a5;
+  --accent: #5b9cf5;
+  --accent-hover: #7db3ff;
+  --danger: #e55b5b;
+  --danger-hover: #f07070;
+  --success: #4ecb71;
+  --warning: #f0ad4e;
+  --radius: 8px;
+  --radius-lg: 12px;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+/* --- Header --- */
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1.25rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  z-index: 10;
+  position: relative;
+}
+
+header h1 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+/* --- Buttons --- */
+.btn-primary {
+  cursor: pointer;
+  border: none;
+  border-radius: var(--radius);
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background 0.15s;
+  background: var(--accent);
+  color: #fff;
+}
+.btn-primary:hover { background: var(--accent-hover); }
+
+.btn-secondary {
+  cursor: pointer;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background 0.15s;
+  background: var(--surface);
+  color: var(--text);
+}
+.btn-secondary:hover { background: var(--surface-hover); }
+
+.btn-icon {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  font-size: 1rem;
+  line-height: 1;
+}
+.btn-icon:hover { color: var(--text); background: var(--surface-hover); }
+
+/* --- Layout --- */
+#main-content {
+  display: flex;
+  height: calc(100vh - 49px);
+}
+
+#globe-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+/* --- Search Bar --- */
+#search-bar {
+  position: absolute;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 380px;
+  max-width: calc(100% - 2rem);
+  z-index: 5;
+}
+
+#location-search {
+  width: 100%;
+  padding: 0.625rem 1rem;
+  background: rgba(20, 25, 38, 0.9);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  font-size: 0.9rem;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s;
+}
+#location-search::placeholder { color: var(--text-dim); }
+#location-search:focus { border-color: var(--accent); }
+
+/* --- Globe Placeholder --- */
+.globe-placeholder {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #1e2840 0%, #0d1220 70%, #080c15 100%);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.globe-placeholder span {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.globe-placeholder .globe-icon {
+  font-size: 2.5rem;
+  opacity: 0.3;
+}
+
+/* --- Kin Panel --- */
+#kin-panel {
+  width: 360px;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+#kin-list {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* --- Kin Card --- */
+.kin-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 0.875rem;
+  transition: border-color 0.15s;
+}
+.kin-card:hover { border-color: var(--accent); }
+
+.kin-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.5rem;
+}
+
+.kin-card-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.kin-card-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.kin-card-location {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.kin-card-scene {
+  font-size: 0.8rem;
+  color: var(--text);
+  background: var(--surface);
+  padding: 0.5rem 0.625rem;
+  border-radius: var(--radius);
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+  font-style: italic;
+}
+
+.kin-card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+.status-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: middle;
+  background: var(--success);
+}
+
+/* --- Modal --- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  width: 520px;
+  max-width: calc(100% - 2rem);
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-header h2 { font-size: 1.1rem; }
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+.modal-close:hover { color: var(--text); }
+
+.form-body {
+  padding: 1.25rem;
+}
+
+.form-section { margin-bottom: 1.25rem; }
+
+.form-section h3 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: var(--accent);
+}
+
+.form-group { margin-bottom: 0.75rem; }
+
+.form-group label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+  color: var(--text-dim);
+}
+
+.required { color: var(--danger); }
+
+.form-row {
+  display: flex;
+  gap: 0.75rem;
+}
+.form-row .form-group { flex: 1; }
+
+input[type="text"],
+input[type="password"],
+input[type="number"],
+select {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+input:focus, select:focus { border-color: var(--accent); }
+input::placeholder { color: var(--text-dim); }
+input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+small {
+  display: block;
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+/* --- Hour Picker --- */
+.hour-picker {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 4px;
+  margin-top: 0.25rem;
+}
+
+.hour-btn {
+  padding: 0.3rem 0;
+  font-size: 0.75rem;
+  text-align: center;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.1s;
+}
+.hour-btn:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.hour-btn.selected {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+  #main-content { flex-direction: column; }
+  #globe-container { height: 45vh; }
+  #kin-panel {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid var(--border);
+    height: calc(55vh - 49px);
+  }
+  .modal {
+    width: 100%;
+    max-width: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+  .form-row { flex-direction: column; gap: 0; }
+  .hour-picker { grid-template-columns: repeat(6, 1fr); }
+  .globe-placeholder { width: 260px; height: 260px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <h1>weather-kin</h1>
+  <button class="btn-primary">+ Add Kin</button>
+</header>
+
+<!-- Main Content -->
+<div id="main-content">
+
+  <!-- Globe Area -->
+  <div id="globe-container">
+    <div id="search-bar">
+      <input type="text" id="location-search" placeholder="Search for a location..." />
+    </div>
+    <div class="globe-placeholder">
+      <span class="globe-icon">&#127758;</span>
+      <span>Interactive 3D Globe</span>
+    </div>
+  </div>
+
+  <!-- Kin Panel -->
+  <div id="kin-panel">
+    <div id="kin-list">
+
+      <!-- Card 1: Luna -->
+      <div class="kin-card">
+        <div class="kin-card-header">
+          <span class="kin-card-name">Luna</span>
+          <div class="kin-card-actions">
+            <button class="btn-icon" title="Refresh">&#8635;</button>
+            <button class="btn-icon" title="Edit">&#9998;</button>
+            <button class="btn-icon" title="Delete" style="color: var(--danger);">&#10005;</button>
+          </div>
+        </div>
+        <div class="kin-card-location">Seabreak, British Columbia &middot; 49.16, -123.94</div>
+        <div class="kin-card-scene">&ldquo;It's currently 8&deg;C and partly cloudy here in Seabreak, British Columbia.&rdquo;</div>
+        <div class="kin-card-meta">
+          <span><span class="status-dot"></span> Active</span>
+          <span>2h ago</span>
+        </div>
+      </div>
+
+      <!-- Card 2: Atlas -->
+      <div class="kin-card">
+        <div class="kin-card-header">
+          <span class="kin-card-name">Atlas</span>
+          <div class="kin-card-actions">
+            <button class="btn-icon" title="Refresh">&#8635;</button>
+            <button class="btn-icon" title="Edit">&#9998;</button>
+            <button class="btn-icon" title="Delete" style="color: var(--danger);">&#10005;</button>
+          </div>
+        </div>
+        <div class="kin-card-location">Portland, Oregon &middot; 45.52, -122.68</div>
+        <div class="kin-card-scene">&ldquo;It's currently 45&deg;F and rainy here in Portland, Oregon, with a light breeze.&rdquo;</div>
+        <div class="kin-card-meta">
+          <span><span class="status-dot"></span> Active</span>
+          <span>35m ago</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- Add Kin Modal (shown overlaid) -->
+<div class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Add Kin</h2>
+      <button class="modal-close">&times;</button>
+    </div>
+    <div class="form-body">
+
+      <!-- Kindroid Connection -->
+      <div class="form-section">
+        <h3>Kindroid Connection</h3>
+        <div class="form-group">
+          <label>Display Name</label>
+          <input type="text" value="Auto-detected from Kindroid" disabled />
+          <small>Populated automatically after saving</small>
+        </div>
+        <div class="form-group">
+          <label>API Key <span class="required">*</span></label>
+          <input type="password" placeholder="Your Kindroid API key" />
+        </div>
+        <div class="form-group">
+          <label>Kin AI ID <span class="required">*</span></label>
+          <input type="text" placeholder="e.g. abc123-def456-..." />
+        </div>
+      </div>
+
+      <!-- Location -->
+      <div class="form-section">
+        <h3>Location</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Latitude <span class="required">*</span></label>
+            <input type="number" placeholder="49.16" />
+          </div>
+          <div class="form-group">
+            <label>Longitude <span class="required">*</span></label>
+            <input type="number" placeholder="-123.94" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Location Name</label>
+            <input type="text" placeholder="Seabreak" />
+          </div>
+          <div class="form-group">
+            <label>Region</label>
+            <input type="text" placeholder="British Columbia" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Preferences -->
+      <div class="form-section">
+        <h3>Preferences</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Temperature Unit</label>
+            <select>
+              <option value="celsius" selected>Celsius (&deg;C)</option>
+              <option value="fahrenheit">Fahrenheit (&deg;F)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Wind Speed Unit</label>
+            <select>
+              <option value="kmh" selected>km/h</option>
+              <option value="mph">mph</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Update Hours <span class="required">*</span></label>
+          <div class="hour-picker">
+            <button class="hour-btn selected">0</button>
+            <button class="hour-btn">1</button>
+            <button class="hour-btn">2</button>
+            <button class="hour-btn">3</button>
+            <button class="hour-btn">4</button>
+            <button class="hour-btn">5</button>
+            <button class="hour-btn selected">6</button>
+            <button class="hour-btn">7</button>
+            <button class="hour-btn">8</button>
+            <button class="hour-btn">9</button>
+            <button class="hour-btn">10</button>
+            <button class="hour-btn">11</button>
+            <button class="hour-btn selected">12</button>
+            <button class="hour-btn">13</button>
+            <button class="hour-btn">14</button>
+            <button class="hour-btn">15</button>
+            <button class="hour-btn">16</button>
+            <button class="hour-btn">17</button>
+            <button class="hour-btn selected">18</button>
+            <button class="hour-btn">19</button>
+            <button class="hour-btn">20</button>
+            <button class="hour-btn">21</button>
+            <button class="hour-btn">22</button>
+            <button class="hour-btn">23</button>
+          </div>
+          <small>Select which hours of the day to push weather updates</small>
+        </div>
+
+        <div class="form-group">
+          <label>Forecast Hour</label>
+          <select>
+            <option value="">None (always current conditions)</option>
+            <option value="0">0:00</option>
+            <option value="6" selected>6:00</option>
+            <option value="12">12:00</option>
+            <option value="18">18:00</option>
+          </select>
+          <small>One update per day sends a daily forecast instead of current conditions</small>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="form-actions">
+        <button class="btn-secondary">Cancel</button>
+        <button class="btn-primary">Add Kin</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
