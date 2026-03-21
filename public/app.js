@@ -86,10 +86,12 @@
       .backgroundColor("rgba(0,0,0,0)")
       .showAtmosphere(false)
       .atmosphereAltitude(0)
+      // Country polygons
       .polygonCapColor(() => "#d1d5de")
       .polygonSideColor(() => "#0a0e17")
-      .polygonStrokeColor(() => null)
-      .polygonAltitude(0.004)
+      .polygonStrokeColor(() => "#8891a5")
+      .polygonAltitude(0.006)
+      // Kin markers
       .pointsData([])
       .pointLat("lat")
       .pointLng("lng")
@@ -106,14 +108,14 @@
         if (card) card.scrollIntoView({ behavior: "smooth", block: "center" });
       });
 
-    // Set ocean color and fix z-fighting with polygon layer
+    // Ocean color — push globe surface back in depth buffer to avoid z-fighting
     const mat = globe.globeMaterial();
     mat.color.set("#0a0e17");
     mat.polygonOffset = true;
-    mat.polygonOffsetFactor = 2;
-    mat.polygonOffsetUnits = 2;
+    mat.polygonOffsetFactor = 4;
+    mat.polygonOffsetUnits = 4;
 
-    // Load country polygons + border lines
+    // Load country polygons
     fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")
       .then((r) => r.json())
       .then((world) => {
@@ -121,21 +123,7 @@
           console.error("topojson library not loaded");
           return;
         }
-        // Country fills
         globe.polygonsData(topojson.feature(world, world.objects.countries).features);
-        // Border lines as a separate path layer (no z-fighting)
-        const borders = topojson.mesh(world, world.objects.countries, (a, b) => a !== b);
-        const paths = borders.coordinates.map((line) =>
-          line.map(([lng, lat]) => ({ lat, lng }))
-        );
-        globe
-          .pathsData(paths)
-          .pathPoints((d) => d)
-          .pathPointLat("lat")
-          .pathPointLng("lng")
-          .pathColor(() => "#0a0e17")
-          .pathStroke(2)
-          .pathTransitionDuration(0);
       })
       .catch((err) => console.error("Failed to load country data:", err));
 
