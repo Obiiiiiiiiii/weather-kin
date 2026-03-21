@@ -86,11 +86,11 @@
       .backgroundColor("rgba(0,0,0,0)")
       .showAtmosphere(false)
       .atmosphereAltitude(0)
-      // Country polygons — near-zero altitude to avoid visible side faces
+      // Country polygons — flat on surface, depth offset handles layering
       .polygonCapColor(() => "#d1d5de")
       .polygonSideColor(() => "#d1d5de")
       .polygonStrokeColor(() => "#8891a5")
-      .polygonAltitude(0.001)
+      .polygonAltitude(0)
       // Kin markers
       .pointsData([])
       .pointLat("lat")
@@ -112,8 +112,8 @@
     const mat = globe.globeMaterial();
     mat.color.set("#0a0e17");
     mat.polygonOffset = true;
-    mat.polygonOffsetFactor = 4;
-    mat.polygonOffsetUnits = 4;
+    mat.polygonOffsetFactor = 10;
+    mat.polygonOffsetUnits = 10;
 
     // Load country polygons
     fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")
