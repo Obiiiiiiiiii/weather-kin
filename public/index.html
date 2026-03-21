@@ -23,11 +23,10 @@
   <!-- Main dashboard -->
   <div id="dashboard" class="screen" style="display:none">
     <header>
-      <div class="header-left">
-        <h1>weather-kin</h1>
-      </div>
-      <div class="header-right">
+      <h1>weather-kin</h1>
+      <div class="header-actions">
         <button id="add-kin-btn" class="btn-primary">+ Add Kin</button>
+        <button id="settings-btn" class="btn-settings" title="Settings">&#9881;</button>
       </div>
     </header>
 
@@ -53,6 +52,27 @@
       </div>
     </div>
 
+    <!-- Settings modal -->
+    <div id="settings-overlay" class="modal-overlay settings-modal" style="display:none">
+      <div class="modal">
+        <div class="modal-header">
+          <h2>Settings</h2>
+          <button class="modal-close" id="settings-close">&times;</button>
+        </div>
+        <form id="settings-form">
+          <div class="form-group">
+            <label for="settings-api-key">Kindroid API Key <span class="required">*</span></label>
+            <input type="password" id="settings-api-key" placeholder="Enter your API key">
+            <small>Your API key from <a href="https://kindroid.ai/developer" target="_blank" rel="noopener">kindroid.ai/developer</a> — used for all Kins</small>
+          </div>
+          <div id="settings-status" style="display:none"></div>
+          <div class="form-actions">
+            <button type="submit" class="btn-primary">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <!-- Add/Edit Kin modal -->
     <div id="modal-overlay" class="modal-overlay" style="display:none">
       <div class="modal">
@@ -67,12 +87,7 @@
             <h3>Kindroid Connection</h3>
             <div class="form-group">
               <label for="kin-name">Display Name</label>
-              <input type="text" id="kin-name" placeholder="e.g. Luna, My Kin">
-            </div>
-            <div class="form-group">
-              <label for="kin-api-key">Kindroid API Key <span class="required">*</span></label>
-              <input type="password" id="kin-api-key" required>
-              <small>Found in your <a href="https://kindroid.ai/developer" target="_blank" rel="noopener">Kindroid developer settings</a></small>
+              <input type="text" id="kin-name" placeholder="e.g. Luna, Sol">
             </div>
             <div class="form-group">
               <label for="kin-ai-id">Kin AI ID <span class="required">*</span></label>

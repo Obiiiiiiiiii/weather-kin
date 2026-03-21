@@ -87,6 +87,25 @@ header h1 {
   letter-spacing: -0.02em;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-settings {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 0.4rem 0.6rem;
+  border-radius: var(--radius);
+  font-size: 1rem;
+  line-height: 1;
+  transition: all 0.15s;
+}
+.btn-settings:hover { color: var(--text); background: var(--surface-hover); border-color: var(--accent); }
+
 /* --- Buttons --- */
 button, .btn-primary, .btn-secondary {
   cursor: pointer;
@@ -441,6 +460,37 @@ small {
   background: var(--accent);
   border-color: var(--accent);
   color: #fff;
+}
+
+/* --- Settings Modal (smaller) --- */
+.settings-modal .modal {
+  width: 400px;
+}
+
+.settings-modal .form-group {
+  padding: 1.25rem;
+  padding-bottom: 0;
+}
+
+.settings-modal .form-actions {
+  margin: 0 1.25rem 1.25rem;
+}
+
+#settings-status {
+  margin: 0.5rem 1.25rem 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius);
+  font-size: 0.8rem;
+}
+
+#settings-status.success {
+  background: rgba(78, 203, 113, 0.1);
+  color: var(--success);
+}
+
+#settings-status.error {
+  background: rgba(229, 91, 91, 0.1);
+  color: var(--danger);
 }
 
 /* --- Responsive --- */

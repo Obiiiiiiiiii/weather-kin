@@ -1,5 +1,5 @@
 // app.js — Dashboard frontend logic.
-// Manages the globe, location search, and Kin CRUD.
+// Manages the globe, location search, settings, and Kin CRUD.
 
 (function () {
   "use strict";
@@ -9,6 +9,7 @@
   let kins = [];
   let globe = null;
   let pendingCoords = null; // { lat, lng } set by globe click or search
+  let hasKindroidKey = false;
 
   // --- Auth ---
 
@@ -63,10 +64,74 @@
     initGlobe();
     initHourPicker();
     initForecastHourSelect();
+    await refreshSettings();
     await refreshKins();
+
+    // If no API key set, prompt settings on first load
+    if (!hasKindroidKey) {
+      openSettings();
+    }
+
     // Auto-refresh every 60 seconds
     setInterval(refreshKins, 60000);
   }
+
+  // --- Settings ---
+
+  async function refreshSettings() {
+    const res = await api("GET", "/api/settings");
+    hasKindroidKey = res.hasKindroidKey;
+  }
+
+  document.getElementById("settings-btn").addEventListener("click", openSettings);
+  document.getElementById("settings-close").addEventListener("click", closeSettings);
+  document.getElementById("settings-overlay").addEventListener("click", (e) => {
+    if (e.target.id === "settings-overlay") closeSettings();
+  });
+
+  function openSettings() {
+    document.getElementById("settings-api-key").value = "";
+    document.getElementById("settings-api-key").placeholder = hasKindroidKey ? "(saved — enter new key to change)" : "Enter your API key";
+    hideStatus();
+    show("settings-overlay");
+  }
+
+  function closeSettings() {
+    hide("settings-overlay");
+  }
+
+  function showStatus(msg, type) {
+    const el = document.getElementById("settings-status");
+    el.textContent = msg;
+    el.className = type;
+    el.style.display = "block";
+  }
+
+  function hideStatus() {
+    document.getElementById("settings-status").style.display = "none";
+  }
+
+  document.getElementById("settings-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const key = document.getElementById("settings-api-key").value.trim();
+    if (!key) {
+      if (hasKindroidKey) {
+        closeSettings();
+        return;
+      }
+      showStatus("Please enter your API key.", "error");
+      return;
+    }
+
+    const res = await api("PUT", "/api/settings", { kindroidKey: key });
+    if (res.ok) {
+      hasKindroidKey = true;
+      showStatus("API key saved.", "success");
+      setTimeout(closeSettings, 1000);
+    } else {
+      showStatus(res.error || "Failed to save.", "error");
+    }
+  });
 
   // --- Globe ---
 
@@ -85,6 +150,7 @@
       .pointLabel("label")
       .onGlobeClick(({ lat, lng }) => {
         setPendingCoords(lat, lng);
+        openAddModal();
       })
       .onPointClick((point) => {
         // Scroll to that kin's card
@@ -200,10 +266,8 @@
           globe.pointOfView({ lat, lng, altitude: 1.5 }, 1000);
           setPendingCoords(lat, lng);
 
-          // Open add modal if not already editing
-          if (document.getElementById("modal-overlay").style.display === "none") {
-            openAddModal();
-          }
+          // Open add modal
+          openAddModal();
         });
       });
     } catch {
@@ -250,7 +314,6 @@
 
   function initForecastHourSelect() {
     const sel = document.getElementById("kin-forecast-hour");
-    // Keep the "None" option, add 0-23
     for (let h = 0; h < 24; h++) {
       const opt = document.createElement("option");
       opt.value = h;
@@ -327,12 +390,18 @@
     return `${k.latitude.toFixed(4)}, ${k.longitude.toFixed(4)}`;
   }
 
-  // --- Modal ---
+  // --- Add/Edit Kin Modal ---
 
   const modal = document.getElementById("modal-overlay");
   const form = document.getElementById("kin-form");
 
-  document.getElementById("add-kin-btn").addEventListener("click", () => openAddModal());
+  document.getElementById("add-kin-btn").addEventListener("click", () => {
+    if (!hasKindroidKey) {
+      openSettings();
+      return;
+    }
+    openAddModal();
+  });
   document.getElementById("modal-close").addEventListener("click", closeModal);
   document.getElementById("modal-cancel").addEventListener("click", closeModal);
   modal.addEventListener("click", (e) => {
@@ -340,6 +409,11 @@
   });
 
   function openAddModal() {
+    if (!hasKindroidKey) {
+      openSettings();
+      return;
+    }
+
     document.getElementById("modal-title").textContent = "Add Kin";
     document.getElementById("modal-submit").textContent = "Add Kin";
     form.reset();
@@ -364,9 +438,6 @@
     document.getElementById("modal-submit").textContent = "Save Changes";
     document.getElementById("kin-id").value = kin.id;
     document.getElementById("kin-name").value = kin.name || "";
-    document.getElementById("kin-api-key").value = ""; // Don't expose key
-    document.getElementById("kin-api-key").required = false;
-    document.getElementById("kin-api-key").placeholder = "(unchanged)";
     document.getElementById("kin-ai-id").value = kin.aiId || "";
     document.getElementById("kin-lat").value = kin.latitude;
     document.getElementById("kin-lng").value = kin.longitude;
@@ -383,9 +454,6 @@
   function closeModal() {
     hide("modal-overlay");
     pendingCoords = null;
-    // Reset API key field for next use
-    document.getElementById("kin-api-key").required = true;
-    document.getElementById("kin-api-key").placeholder = "";
   }
 
   form.addEventListener("submit", async (e) => {
@@ -406,18 +474,14 @@
       forecastHour: document.getElementById("kin-forecast-hour").value,
     };
 
-    const apiKey = document.getElementById("kin-api-key").value;
-    if (apiKey) data.kindroidKey = apiKey;
-
     if (isEdit) {
       await api("PUT", `/api/kins/${id}`, data);
     } else {
-      if (!apiKey) {
-        alert("API Key is required when adding a new Kin.");
+      const res = await api("POST", "/api/kins", data);
+      if (res.error) {
+        alert(res.error);
         return;
       }
-      data.kindroidKey = apiKey;
-      await api("POST", "/api/kins", data);
     }
 
     closeModal();

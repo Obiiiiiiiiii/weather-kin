@@ -111,6 +111,31 @@ async function handleApi(req, res) {
   // All other API routes require auth
   if (!checkAuth(req, res)) return;
 
+  // GET /api/settings — get settings (without exposing full key)
+  if (pathname === "/api/settings" && method === "GET") {
+    const hasKey = db.hasKindroidKey();
+    return sendJson(res, 200, { hasKindroidKey: hasKey });
+  }
+
+  // PUT /api/settings — update settings
+  if (pathname === "/api/settings" && method === "PUT") {
+    try {
+      const body = await readBody(req);
+      if (body.kindroidKey !== undefined) {
+        if (!body.kindroidKey) {
+          return sendJson(res, 400, { error: "API key cannot be empty" });
+        }
+        db.setKindroidKey(body.kindroidKey);
+        // Restart all schedulers with new key
+        scheduler.stopAll();
+        scheduler.startAll();
+      }
+      return sendJson(res, 200, { ok: true, hasKindroidKey: db.hasKindroidKey() });
+    } catch (err) {
+      return sendJson(res, 400, { error: err.message });
+    }
+  }
+
   // GET /api/kins — list all
   if (pathname === "/api/kins" && method === "GET") {
     const kins = db.listKinsWithState();
@@ -121,8 +146,11 @@ async function handleApi(req, res) {
   if (pathname === "/api/kins" && method === "POST") {
     try {
       const body = await readBody(req);
-      if (!body.kindroidKey || !body.aiId || body.latitude == null || body.longitude == null) {
-        return sendJson(res, 400, { error: "Missing required fields: kindroidKey, aiId, latitude, longitude" });
+      if (!body.aiId || body.latitude == null || body.longitude == null) {
+        return sendJson(res, 400, { error: "Missing required fields: aiId, latitude, longitude" });
+      }
+      if (!db.hasKindroidKey()) {
+        return sendJson(res, 400, { error: "Set your Kindroid API key in Settings first" });
       }
       const kin = db.createKin(body);
       scheduler.start(kin.id);
