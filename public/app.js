@@ -149,21 +149,27 @@
       .polygonSideColor(() => "#0a0e17")
       .polygonStrokeColor(() => "#0a0e17")
       .polygonAltitude(0.005)
-      .pointsData([])
-      .pointLat("lat")
-      .pointLng("lng")
-      .pointColor("color")
-      .pointAltitude(0.02)
-      .pointRadius(0.5)
-      .pointLabel("label")
+      .htmlElementsData([])
+      .htmlLat("lat")
+      .htmlLng("lng")
+      .htmlAltitude(0.03)
+      .htmlElement((d) => {
+        const pin = document.createElement("div");
+        pin.className = "globe-pin" + (d.active ? "" : " inactive");
+        pin.innerHTML =
+          '<div class="pin-head"></div>' +
+          '<div class="pin-needle"></div>' +
+          '<div class="pin-tooltip">' + d.tooltip + "</div>";
+        pin.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const card = document.querySelector('[data-kin-id="' + d.id + '"]');
+          if (card) card.scrollIntoView({ behavior: "smooth", block: "center" });
+        });
+        return pin;
+      })
       .onGlobeClick(({ lat, lng }) => {
         setPendingCoords(lat, lng);
         openAddModal();
-      })
-      .onPointClick((point) => {
-        // Scroll to that kin's card
-        const card = document.querySelector(`[data-kin-id="${point.id}"]`);
-        if (card) card.scrollIntoView({ behavior: "smooth", block: "center" });
       });
 
     // Load country polygons
@@ -190,14 +196,12 @@
       id: k.id,
       lat: k.latitude,
       lng: k.longitude,
-      color: k.enabled ? "#5bef8b" : "#8891a5",
-      label: `<div style="background:rgba(20,25,38,0.9);padding:6px 10px;border-radius:6px;font-size:13px;color:#e4e8f1;border:1px solid #2a3142">
-        <strong>${esc(k.name || "Unnamed Kin")}</strong><br>
+      active: k.enabled,
+      tooltip: `<strong>${esc(k.name || "Unnamed Kin")}</strong><br>
         <span style="color:#8891a5">${k.latitude.toFixed(2)}, ${k.longitude.toFixed(2)}</span>
-        ${k.lastScene ? `<br><em style="color:#b0b8c9">${esc(k.lastScene)}</em>` : ""}
-      </div>`,
+        ${k.lastScene ? `<br><em style="color:#b0b8c9">${esc(k.lastScene)}</em>` : ""}`,
     }));
-    globe.pointsData(points);
+    globe.htmlElementsData(points);
   }
 
   // --- Pending coordinates (from globe click or search) ---
