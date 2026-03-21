@@ -493,6 +493,23 @@ small {
   color: var(--danger);
 }
 
+.settings-footer {
+  border-top: 1px solid var(--border);
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+}
+
+.settings-link {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: color 0.15s;
+}
+.settings-link:hover { color: var(--text); }
+
 /* --- Responsive --- */
 @media (max-width: 768px) {
   #main-content {
