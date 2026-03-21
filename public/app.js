@@ -144,33 +144,29 @@
       .polygonCapColor(() => "#d1d5de")
       .polygonSideColor(() => "#0a0e17")
       .polygonStrokeColor(() => "#0a0e17")
-      .polygonAltitude(0.005)
-      .htmlElementsData([])
-      .htmlLat("lat")
-      .htmlLng("lng")
-      .htmlAltitude(0.03)
-      .htmlElement((d) => {
-        const pin = document.createElement("div");
-        pin.className = "globe-pin" + (d.active ? "" : " inactive");
-        pin.innerHTML =
-          '<div class="pin-head"></div>' +
-          '<div class="pin-needle"></div>' +
-          '<div class="pin-tooltip">' + d.tooltip + "</div>";
-        pin.addEventListener("click", (e) => {
-          e.stopPropagation();
-          const card = document.querySelector('[data-kin-id="' + d.id + '"]');
-          if (card) card.scrollIntoView({ behavior: "smooth", block: "center" });
-        });
-        return pin;
-      })
+      .polygonAltitude(0.01)
+      .pointsData([])
+      .pointLat("lat")
+      .pointLng("lng")
+      .pointColor("color")
+      .pointAltitude(0.02)
+      .pointRadius(0.5)
+      .pointLabel("label")
       .onGlobeClick(({ lat, lng }) => {
         setPendingCoords(lat, lng);
         openAddModal();
+      })
+      .onPointClick((point) => {
+        const card = document.querySelector(`[data-kin-id="${point.id}"]`);
+        if (card) card.scrollIntoView({ behavior: "smooth", block: "center" });
       });
 
-    // Set ocean color via existing globe material
+    // Set ocean color and fix z-fighting with polygon layer
     const mat = globe.globeMaterial();
     mat.color.set("#0a0e17");
+    mat.polygonOffset = true;
+    mat.polygonOffsetFactor = 2;
+    mat.polygonOffsetUnits = 2;
 
     // Load country polygons
     fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")
@@ -200,12 +196,14 @@
       id: k.id,
       lat: k.latitude,
       lng: k.longitude,
-      active: k.enabled,
-      tooltip: `<strong>${esc(k.name || "Unnamed Kin")}</strong><br>
+      color: k.enabled ? "#5bef8b" : "#8891a5",
+      label: `<div style="background:rgba(20,25,38,0.9);padding:6px 10px;border-radius:6px;font-size:13px;color:#e4e8f1;border:1px solid #2a3142">
+        <strong>${esc(k.name || "Unnamed Kin")}</strong><br>
         <span style="color:#8891a5">${k.latitude.toFixed(2)}, ${k.longitude.toFixed(2)}</span>
-        ${k.lastScene ? `<br><em style="color:#b0b8c9">${esc(k.lastScene)}</em>` : ""}`,
+        ${k.lastScene ? `<br><em style="color:#b0b8c9">${esc(k.lastScene)}</em>` : ""}
+      </div>`,
     }));
-    globe.htmlElementsData(points);
+    globe.pointsData(points);
   }
 
   // --- Pending coordinates (from globe click or search) ---
