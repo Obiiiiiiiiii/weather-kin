@@ -142,9 +142,9 @@
       .showAtmosphere(false)
       .atmosphereAltitude(0)
       .polygonCapColor(() => "#d1d5de")
-      .polygonSideColor(() => "#1a1f2e")
-      .polygonStrokeColor(() => "#1a1f2e")
-      .polygonAltitude(0.012)
+      .polygonSideColor(() => "#0a0e17")
+      .polygonStrokeColor(() => null)
+      .polygonAltitude(0.004)
       .pointsData([])
       .pointLat("lat")
       .pointLng("lng")
@@ -372,7 +372,7 @@
           <span class="kin-card-name">${esc(k.name || "Unnamed Kin")}</span>
           <div class="kin-card-actions">
             <button class="btn-icon" title="Trigger update now" data-trigger="${k.id}">&#x21bb;</button>
-            <button class="btn-icon" title="${k.enabled ? "Pause" : "Resume"}" data-toggle="${k.id}">${k.enabled ? "&#x23F8;" : "&#x25B6;"}</button>
+            <button class="btn-icon${k.enabled ? "" : " btn-paused"}" title="${k.enabled ? "Pause" : "Resume"}" data-toggle="${k.id}">${k.enabled ? "&#x23F8;" : "&#x25B6;&#xFE0E;"}</button>
             <button class="btn-icon" title="Edit" data-edit="${k.id}">&#x270E;</button>
             <button class="btn-icon" title="Delete" data-delete="${k.id}">&#x2715;</button>
           </div>
@@ -406,10 +406,22 @@
     });
     list.querySelectorAll("[data-trigger]").forEach((btn) => {
       btn.addEventListener("click", async () => {
+        const id = btn.dataset.trigger;
+        const kin = kins.find((k) => k.id == id);
+        const oldUpdate = kin ? kin.lastUpdate : null;
         btn.disabled = true;
-        await api("POST", `/api/kins/${btn.dataset.trigger}/trigger`);
-        setTimeout(refreshKins, 3000);
-        setTimeout(() => { btn.disabled = false; }, 5000);
+        await api("POST", `/api/kins/${id}/trigger`);
+        // Poll until the update lands (up to 15s)
+        let attempts = 0;
+        const poll = setInterval(async () => {
+          attempts++;
+          await refreshKins();
+          const updated = kins.find((k) => k.id == id);
+          if ((updated && updated.lastUpdate !== oldUpdate) || attempts >= 5) {
+            clearInterval(poll);
+            btn.disabled = false;
+          }
+        }, 3000);
       });
     });
   }

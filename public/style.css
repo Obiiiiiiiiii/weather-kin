@@ -162,6 +162,8 @@ button, .btn-primary, .btn-secondary {
   line-height: 1;
 }
 .btn-icon:hover { color: var(--text); background: var(--surface-hover); }
+.btn-icon.btn-paused { color: var(--danger); }
+.btn-icon.btn-paused:hover { color: var(--danger-hover); }
 
 /* --- Inputs --- */
 input[type="text"],
@@ -339,7 +341,7 @@ small {
   vertical-align: middle;
 }
 .status-dot.active { background: var(--success); }
-.status-dot.inactive { background: var(--text-dim); }
+.status-dot.inactive { background: var(--danger); }
 
 /* --- Modal --- */
 .modal-overlay {
