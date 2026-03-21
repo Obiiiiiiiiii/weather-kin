@@ -86,11 +86,11 @@
       .backgroundColor("rgba(0,0,0,0)")
       .showAtmosphere(false)
       .atmosphereAltitude(0)
-      // Country polygons
+      // Country polygons — near-zero altitude to avoid visible side faces
       .polygonCapColor(() => "#d1d5de")
-      .polygonSideColor(() => "#0a0e17")
+      .polygonSideColor(() => "#d1d5de")
       .polygonStrokeColor(() => "#8891a5")
-      .polygonAltitude(0.006)
+      .polygonAltitude(0.001)
       // Kin markers
       .pointsData([])
       .pointLat("lat")
@@ -353,22 +353,10 @@
     });
     list.querySelectorAll("[data-trigger]").forEach((btn) => {
       btn.addEventListener("click", async () => {
-        const id = btn.dataset.trigger;
-        const kin = kins.find((k) => k.id == id);
-        const oldUpdate = kin ? kin.lastUpdate : null;
         btn.disabled = true;
-        await api("POST", `/api/kins/${id}/trigger`);
-        // Poll until the update lands (up to 15s)
-        let attempts = 0;
-        const poll = setInterval(async () => {
-          attempts++;
-          await refreshKins();
-          const updated = kins.find((k) => k.id == id);
-          if ((updated && updated.lastUpdate !== oldUpdate) || attempts >= 5) {
-            clearInterval(poll);
-            btn.disabled = false;
-          }
-        }, 3000);
+        await api("POST", `/api/kins/${btn.dataset.trigger}/trigger`);
+        await refreshKins();
+        btn.disabled = false;
       });
     });
   }

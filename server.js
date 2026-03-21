@@ -202,8 +202,8 @@ async function handleApi(req, res) {
     const config = db.getKinConfig(id);
     if (!config) return sendJson(res, 404, { error: "Kin not found" });
 
-    // Run tick in background, respond immediately
-    scheduler.tick(id);
+    // Run tick with force flag (bypasses enabled check), await completion
+    await scheduler.tick(id, { force: true });
     return sendJson(res, 200, { ok: true, message: "Update triggered" });
   }
 
