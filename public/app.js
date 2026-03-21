@@ -67,11 +67,6 @@
     await refreshSettings();
     await refreshKins();
 
-    // If no API key set, prompt settings on first load
-    if (!hasKindroidKey) {
-      openSettings();
-    }
-
     // Auto-refresh every 60 seconds
     setInterval(refreshKins, 60000);
   }
@@ -82,56 +77,6 @@
     const res = await api("GET", "/api/settings");
     hasKindroidKey = res.hasKindroidKey;
   }
-
-  document.getElementById("settings-btn").addEventListener("click", openSettings);
-  document.getElementById("settings-close").addEventListener("click", closeSettings);
-  document.getElementById("settings-overlay").addEventListener("click", (e) => {
-    if (e.target.id === "settings-overlay") closeSettings();
-  });
-
-  function openSettings() {
-    document.getElementById("settings-api-key").value = "";
-    document.getElementById("settings-api-key").placeholder = hasKindroidKey ? "(saved — enter new key to change)" : "Enter your API key";
-    hideStatus();
-    show("settings-overlay");
-  }
-
-  function closeSettings() {
-    hide("settings-overlay");
-  }
-
-  function showStatus(msg, type) {
-    const el = document.getElementById("settings-status");
-    el.textContent = msg;
-    el.className = type;
-    el.style.display = "block";
-  }
-
-  function hideStatus() {
-    document.getElementById("settings-status").style.display = "none";
-  }
-
-  document.getElementById("settings-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const key = document.getElementById("settings-api-key").value.trim();
-    if (!key) {
-      if (hasKindroidKey) {
-        closeSettings();
-        return;
-      }
-      showStatus("Please enter your API key.", "error");
-      return;
-    }
-
-    const res = await api("PUT", "/api/settings", { kindroidKey: key });
-    if (res.ok) {
-      hasKindroidKey = true;
-      showStatus("API key saved.", "success");
-      setTimeout(closeSettings, 1000);
-    } else {
-      showStatus(res.error || "Failed to save.", "error");
-    }
-  });
 
   // --- Globe ---
 
@@ -189,7 +134,7 @@
           .pathPointLat("lat")
           .pathPointLng("lng")
           .pathColor(() => "#0a0e17")
-          .pathStroke(0.5)
+          .pathStroke(2)
           .pathTransitionDuration(0);
       })
       .catch((err) => console.error("Failed to load country data:", err));
@@ -455,7 +400,7 @@
 
   document.getElementById("add-kin-btn").addEventListener("click", () => {
     if (!hasKindroidKey) {
-      openSettings();
+      alert("No Kindroid API key found. Set the KINDROID_API_KEY environment variable on Railway.");
       return;
     }
     openAddModal();
@@ -468,7 +413,7 @@
 
   function openAddModal() {
     if (!hasKindroidKey) {
-      openSettings();
+      alert("No Kindroid API key found. Set the KINDROID_API_KEY environment variable on Railway.");
       return;
     }
 
