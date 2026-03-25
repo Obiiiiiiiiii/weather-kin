@@ -1,4 +1,4 @@
-// weather-kin: Polls Open-Meteo for weather and updates a Kin's
+// weather-kin: Polls a weather API for weather and updates a Kin's
 // Current Setting on Kindroid with a natural language scene.
 //
 // Required env vars:
@@ -8,14 +8,14 @@
 //   LONGITUDE           - Location longitude (e.g. -123.94)
 //
 // Optional env vars:
-//   LOCATION_NAME       - Display name for the location (e.g. "Seabreak")
-//   LOCATION_REGION     - Region/state for seasonal context (e.g. "British Columbia")
-//   TEMPERATURE_UNIT    - "celsius" or "fahrenheit" (default: celsius)
-//   WIND_SPEED_UNIT     - "kmh" or "mph" (default: kmh)
-//   UPDATE_HOURS        - Comma-separated hours to update (default: "0,6,12,18")
-//   FORECAST_HOUR       - Hour (0-23) to send a daily forecast instead of current conditions
-//
-// No weather API key needed (Open-Meteo is free and requires no account).
+//   WEATHER_PROVIDER       - "openmeteo" (default) or "visualcrossing"
+//   VISUALCROSSING_API_KEY - Required when WEATHER_PROVIDER=visualcrossing
+//   LOCATION_NAME          - Display name for the location (e.g. "Seabreak")
+//   LOCATION_REGION        - Region/state for seasonal context (e.g. "British Columbia")
+//   TEMPERATURE_UNIT       - "celsius" or "fahrenheit" (default: celsius)
+//   WIND_SPEED_UNIT        - "kmh" or "mph" (default: kmh)
+//   UPDATE_HOURS           - Comma-separated hours to update (default: "0,6,12,18")
+//   FORECAST_HOUR          - Hour (0-23) to send a daily forecast instead of current conditions
 
 const http = require("http");
 const fs = require("fs");
@@ -44,6 +44,8 @@ const CONFIG = {
   locationName: optionalEnv("LOCATION_NAME", ""),
   latitude: requiredEnv("LATITUDE"),
   longitude: requiredEnv("LONGITUDE"),
+  weatherProvider: optionalEnv("WEATHER_PROVIDER", "openmeteo").toLowerCase(),
+  visualCrossingKey: optionalEnv("VISUALCROSSING_API_KEY", ""),
   temperatureUnit: optionalEnv("TEMPERATURE_UNIT", "celsius"),
   windSpeedUnit: optionalEnv("WIND_SPEED_UNIT", "kmh"),
   locationRegion: optionalEnv("LOCATION_REGION", ""),
@@ -76,6 +78,17 @@ if (CONFIG.forecastHour != null && !CONFIG.updateHours.includes(CONFIG.forecastH
   CONFIG.updateHours.sort((a, b) => a - b);
 }
 
+// Validate weather provider
+const VALID_PROVIDERS = ["openmeteo", "visualcrossing"];
+if (!VALID_PROVIDERS.includes(CONFIG.weatherProvider)) {
+  console.error(`Invalid WEATHER_PROVIDER: "${CONFIG.weatherProvider}" (must be one of: ${VALID_PROVIDERS.join(", ")})`);
+  process.exit(1);
+}
+if (CONFIG.weatherProvider === "visualcrossing" && !CONFIG.visualCrossingKey) {
+  console.error("VISUALCROSSING_API_KEY is required when WEATHER_PROVIDER=visualcrossing");
+  process.exit(1);
+}
+
 const OPEN_METEO_URL =
   "https://api.open-meteo.com/v1/forecast" +
   `?latitude=${CONFIG.latitude}&longitude=${CONFIG.longitude}` +
@@ -86,6 +99,31 @@ const OPEN_METEO_URL =
   `&temperature_unit=${CONFIG.temperatureUnit}&wind_speed_unit=${CONFIG.windSpeedUnit}`;
 
 const TEMP_SYMBOL = CONFIG.temperatureUnit === "fahrenheit" ? "°F" : "°C";
+
+// --- VisualCrossing icon → WMO code mapping ---
+// Maps VisualCrossing icon strings to WMO weather codes so all existing
+// condition/transition logic works unchanged regardless of provider.
+
+const VC_ICON_TO_WMO = new Map([
+  ["clear-day", 0],
+  ["clear-night", 0],
+  ["partly-cloudy-day", 2],
+  ["partly-cloudy-night", 2],
+  ["cloudy", 3],
+  ["fog", 45],
+  ["wind", 1],
+  ["rain", 63],
+  ["showers-day", 80],
+  ["showers-night", 80],
+  ["snow", 73],
+  ["snow-showers-day", 85],
+  ["snow-showers-night", 85],
+  ["sleet", 66],
+  ["thunder-rain", 95],
+  ["thunder-showers-day", 95],
+  ["thunder-showers-night", 95],
+  ["hail", 99],
+]);
 
 // --- WMO Weather Code mapping ---
 
@@ -351,19 +389,19 @@ function lowercaseFirst(s) {
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 10000;
 
-async function fetchWeather() {
+async function fetchWithRetry(url, label) {
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const res = await fetch(OPEN_METEO_URL, { signal: AbortSignal.timeout(15000) });
+      const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
       if (res.ok) return res.json();
 
       const body = await res.text();
       if (attempt < MAX_RETRIES && res.status >= 500) {
-        console.log(`Open-Meteo ${res.status}, retrying in ${RETRY_DELAY_MS / 1000}s (attempt ${attempt}/${MAX_RETRIES})...`);
+        console.log(`${label} ${res.status}, retrying in ${RETRY_DELAY_MS / 1000}s (attempt ${attempt}/${MAX_RETRIES})...`);
         await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
         continue;
       }
-      throw new Error(`Open-Meteo ${res.status}: ${body}`);
+      throw new Error(`${label} ${res.status}: ${body}`);
     } catch (err) {
       if (attempt < MAX_RETRIES) {
         console.log(`Fetch error: ${err.message}, retrying in ${RETRY_DELAY_MS / 1000}s (attempt ${attempt}/${MAX_RETRIES})...`);
@@ -373,6 +411,60 @@ async function fetchWeather() {
       throw err;
     }
   }
+}
+
+function fetchOpenMeteo() {
+  return fetchWithRetry(OPEN_METEO_URL, "Open-Meteo");
+}
+
+async function fetchVisualCrossing() {
+  const unitGroup = CONFIG.temperatureUnit === "fahrenheit" ? "us" : "metric";
+  const include = CONFIG.forecastHour != null ? "current,days" : "current";
+  const url =
+    "https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/" +
+    `${CONFIG.latitude},${CONFIG.longitude}/today` +
+    `?unitGroup=${unitGroup}&key=${CONFIG.visualCrossingKey}` +
+    `&include=${include}&iconSet=icons2`;
+
+  const vc = await fetchWithRetry(url, "VisualCrossing");
+
+  // VisualCrossing returns wind in km/h (metric) or mph (us), matching our unit config.
+  // However, if the user wants mph but uses metric temps (or vice versa), we handle
+  // the wind conversion here since VC ties wind unit to the unitGroup.
+  const needWindConversion =
+    (CONFIG.windSpeedUnit === "mph" && unitGroup === "metric") ||
+    (CONFIG.windSpeedUnit === "kmh" && unitGroup === "us");
+  const convertWind = (speed) => {
+    if (!needWindConversion) return speed;
+    // metric→mph: divide by 1.609; us→kmh: multiply by 1.609
+    return unitGroup === "metric" ? speed / 1.609 : speed * 1.609;
+  };
+
+  // Normalize to Open-Meteo shape so formatScene/formatForecast work unchanged.
+  const normalized = {
+    current: {
+      temperature_2m: vc.currentConditions.temp,
+      weather_code: VC_ICON_TO_WMO.get(vc.currentConditions.icon) ?? 0,
+      wind_speed_10m: convertWind(vc.currentConditions.windspeed),
+    },
+  };
+
+  if (vc.days && vc.days[0]) {
+    const day = vc.days[0];
+    normalized.daily = {
+      temperature_2m_max: [day.tempmax],
+      temperature_2m_min: [day.tempmin],
+      weather_code: [VC_ICON_TO_WMO.get(day.icon) ?? 0],
+      wind_speed_10m_max: [convertWind(day.windspeed)],
+    };
+  }
+
+  return normalized;
+}
+
+async function fetchWeather() {
+  if (CONFIG.weatherProvider === "visualcrossing") return fetchVisualCrossing();
+  return fetchOpenMeteo();
 }
 
 function buildLocationParts() {
@@ -668,7 +760,7 @@ async function tick() {
   try {
     const isForecastTick =
       CONFIG.forecastHour != null && new Date().getHours() === CONFIG.forecastHour;
-    console.log(`[${timestamp}] Fetching weather${isForecastTick ? " (forecast)" : ""}...`);
+    console.log(`[${timestamp}] Fetching weather from ${CONFIG.weatherProvider}${isForecastTick ? " (forecast)" : ""}...`);
     const data = await fetchWeather();
     lastScene = isForecastTick ? formatForecast(data) : formatScene(data);
     console.log(`[${timestamp}] Scene: "${lastScene}"`);
@@ -697,6 +789,7 @@ http.createServer((req, res) => {
 
 // --- Start ---
 
+console.log(`Weather provider: ${CONFIG.weatherProvider}`);
 console.log(`Update schedule: ${CONFIG.updateHours.map((h) => `${h}:00`).join(", ")}`);
 tick();
 scheduleNext();
