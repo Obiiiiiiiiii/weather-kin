@@ -392,7 +392,9 @@ const RETRY_DELAY_MS = 10000;
 async function fetchWithRetry(url, label) {
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
+      console.log(`  [${label}] attempt ${attempt}/${MAX_RETRIES} — fetching...`);
       const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+      console.log(`  [${label}] response ${res.status}`);
       if (res.ok) return res.json();
 
       const body = await res.text();
@@ -761,9 +763,11 @@ async function tick() {
       CONFIG.forecastHour != null && new Date().getHours() === CONFIG.forecastHour;
     console.log(`[${timestamp}] Fetching weather from ${CONFIG.weatherProvider}${isForecastTick ? " (forecast)" : ""}...`);
     const data = await fetchWeather();
+    console.log(`[${timestamp}] Weather data received.`);
     lastScene = isForecastTick ? formatForecast(data) : formatScene(data);
     console.log(`[${timestamp}] Scene: "${lastScene}"`);
 
+    console.log(`[${timestamp}] Sending to Kindroid...`);
     await updateCurrentScene(lastScene);
     saveState();
     console.log(`[${timestamp}] Kindroid updated.`);
