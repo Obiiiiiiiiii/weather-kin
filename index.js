@@ -431,6 +431,8 @@ async function fetchVisualCrossing() {
   // VisualCrossing returns wind in km/h (metric) or mph (us), matching our unit config.
   // However, if the user wants mph but uses metric temps (or vice versa), we handle
   // the wind conversion here since VC ties wind unit to the unitGroup.
+  // Note: VC daily "windspeed" is the mean, not the max. We use "windgust" (peak gust)
+  // for the daily max to better match Open-Meteo's wind_speed_10m_max.
   const needWindConversion =
     (CONFIG.windSpeedUnit === "mph" && unitGroup === "metric") ||
     (CONFIG.windSpeedUnit === "kmh" && unitGroup === "us");
@@ -455,7 +457,7 @@ async function fetchVisualCrossing() {
       temperature_2m_max: [day.tempmax],
       temperature_2m_min: [day.tempmin],
       weather_code: [VC_ICON_TO_WMO.get(day.icon) ?? 0],
-      wind_speed_10m_max: [convertWind(day.windspeed)],
+      wind_speed_10m_max: [convertWind(day.windgust ?? day.windspeed)],
     };
   }
 
