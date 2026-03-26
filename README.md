@@ -2,7 +2,9 @@
 
 Automatically updates a [Kindroid](https://kindroid.ai/) AI's **Current Setting** with live weather, so your kin always knows what it's like outside.
 
-Uses [Open-Meteo](https://open-meteo.com/) — a free weather API that requires no account and no API key.
+Supports two weather providers:
+- [Open-Meteo](https://open-meteo.com/) — a free weather API that requires no account and no API key (default)
+- [Visual Crossing](https://www.visualcrossing.com/) — a weather API with a free tier (requires a free account and API key)
 
 ### Example
 
@@ -73,6 +75,8 @@ Go to your service's **Variables** tab and add the following:
 
 | Variable | Default | Description |
 |---|---|---|
+| `WEATHER_PROVIDER` | `openmeteo` | `openmeteo` or `visualcrossing` |
+| `VISUALCROSSING_API_KEY` | *(none)* | Your Visual Crossing API key (required when using `visualcrossing` provider) |
 | `LOCATION_NAME` | *(none)* | Location name shown in the scene (e.g. `Seabreak`) |
 | `LOCATION_REGION` | *(none)* | Region/state for seasonal context (e.g. `British Columbia`) |
 | `TEMPERATURE_UNIT` | `celsius` | `celsius` or `fahrenheit` |
@@ -109,18 +113,25 @@ Here's what it looks like on Railway:
 - **Want just morning and evening?** Set `UPDATE_HOURS` to `8,20`.
 - **Using Fahrenheit and mph?** Set `TEMPERATURE_UNIT=fahrenheit` and `WIND_SPEED_UNIT=mph`.
 - **Want a morning forecast?** Set `FORECAST_HOUR=7` to get the day's high, low, and conditions at 7am. All other update hours still give current conditions.
+- **Want to use Visual Crossing?** Set `WEATHER_PROVIDER=visualcrossing` and add your `VISUALCROSSING_API_KEY`. Get a free key at [visualcrossing.com](https://www.visualcrossing.com/).
 
 ---
 
 ## How it works
 
-1. Fetches current weather from Open-Meteo for your configured coordinates.
-2. Converts the WMO weather code, temperature, and wind speed into a natural-language sentence.
+1. Fetches current weather from your configured provider (Open-Meteo or Visual Crossing) for your coordinates.
+2. Converts the weather data into a natural-language sentence (temperature, conditions, wind).
 3. If `FORECAST_HOUR` is set and it's that hour, sends a daily forecast (high, low, conditions, wind) instead.
 4. Pushes the scene to your kin's Current Setting via the Kindroid API.
 5. Waits until the next scheduled hour and repeats.
 
 If a fetch fails, the last successful scene is kept until the next successful update.
+
+### Weather providers
+
+**Open-Meteo** (default) is completely free with no API key required. It uses WMO weather codes directly.
+
+**Visual Crossing** requires a free account and API key from [visualcrossing.com](https://www.visualcrossing.com/). To use it, set `WEATHER_PROVIDER=visualcrossing` and provide your key in `VISUALCROSSING_API_KEY`. Visual Crossing's icon-based conditions are mapped to WMO codes internally, so the output format is the same regardless of provider. Note that Visual Crossing uses peak wind gust (rather than mean wind speed) for daily forecasts to better match Open-Meteo's behavior.
 
 **Note:** Location name and region are optional. If set, they appear in the scene (e.g. *"here in Seabreak, British Columbia"*). If not, current conditions say *"outside"* and forecasts just say *"Today's forecast:"* — useful if the location is already in your kin's backstory.
 
