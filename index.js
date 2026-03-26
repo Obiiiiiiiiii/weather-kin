@@ -743,13 +743,10 @@ function scheduleNext() {
   const { ms, time } = msUntilNextUpdate();
   const hh = time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   console.log(`Next update at ${hh} (in ${Math.round(ms / 60000)} min)`);
-  setTimeout(async () => {
-    try {
-      await tick();
-    } catch (err) {
-      console.error(`Unexpected tick error: ${err.message}`);
-    }
-    scheduleNext();
+  setTimeout(() => {
+    tickInFlight = tick()
+      .catch((err) => console.error(`Unexpected tick error: ${err.message}`))
+      .finally(() => { tickInFlight = null; scheduleNext(); });
   }, ms);
 }
 
@@ -789,9 +786,21 @@ http.createServer((req, res) => {
   console.log(`Health check listening on port ${PORT}`);
 });
 
+// --- Graceful shutdown ---
+// Let in-flight tick finish before exiting so redeployments don't lose updates.
+
+let tickInFlight = null;
+
+process.on("SIGTERM", () => {
+  console.log("SIGTERM received, finishing in-flight tick...");
+  const exit = () => process.exit(0);
+  if (tickInFlight) tickInFlight.then(exit, exit);
+  else exit();
+});
+
 // --- Start ---
 
 console.log(`Weather provider: ${CONFIG.weatherProvider}`);
 console.log(`Update schedule: ${CONFIG.updateHours.map((h) => `${h}:00`).join(", ")}`);
-tick();
+tickInFlight = tick().finally(() => { tickInFlight = null; });
 scheduleNext();
