@@ -5,7 +5,6 @@ Single-file Node.js service (`index.js`) that polls Open-Meteo for weather and u
 ## Structure
 
 - `index.js` — entire application (no dependencies beyond Node built-ins)
-- `Dockerfile` — Alpine-based container image
 - `.env.example` — template for required/optional environment variables
 
 ## Key details

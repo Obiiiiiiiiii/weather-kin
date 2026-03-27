@@ -35,7 +35,7 @@ function requiredEnv(name) {
 }
 
 function optionalEnv(name, fallback) {
-  return process.env[name] || fallback;
+  return process.env[name] ?? fallback;
 }
 
 const CONFIG = {
@@ -779,7 +779,7 @@ async function tick() {
 
 const PORT = process.env.PORT || 3000;
 
-http.createServer((req, res) => {
+const server = http.createServer((req, res) => {
   res.writeHead(200, { "Content-Type": "application/json" });
   res.end(JSON.stringify({ status: "ok", lastScene }));
 }).listen(PORT, () => {
@@ -792,7 +792,8 @@ http.createServer((req, res) => {
 let tickInFlight = null;
 
 process.on("SIGTERM", () => {
-  console.log("SIGTERM received, finishing in-flight tick...");
+  console.log("SIGTERM received, shutting down...");
+  server.close();
   const exit = () => process.exit(0);
   if (tickInFlight) tickInFlight.then(exit, exit);
   else exit();
@@ -802,5 +803,4 @@ process.on("SIGTERM", () => {
 
 console.log(`Weather provider: ${CONFIG.weatherProvider}`);
 console.log(`Update schedule: ${CONFIG.updateHours.map((h) => `${h}:00`).join(", ")}`);
-tickInFlight = tick().finally(() => { tickInFlight = null; });
-scheduleNext();
+tickInFlight = tick().finally(() => { tickInFlight = null; scheduleNext(); });
