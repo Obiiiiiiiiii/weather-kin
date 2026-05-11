@@ -83,6 +83,7 @@ Go to your service's **Variables** tab and add the following:
 | `WIND_SPEED_UNIT` | `kmh` | `kmh` or `mph` |
 | `UPDATE_HOURS` | `0,6,12,18` | Comma-separated hours (0–23) to update weather |
 | `FORECAST_HOUR` | *(none)* | Hour (0–23) to send a daily forecast instead of current conditions |
+| `SURFACE_PRESSURE` | `false` | Set to `true` to add a barometric pressure drop warning to the scene (see [Surface pressure](#surface-pressure-opt-in)) |
 
 Here's what it looks like on Railway:
 
@@ -114,6 +115,7 @@ Here's what it looks like on Railway:
 - **Using Fahrenheit and mph?** Set `TEMPERATURE_UNIT=fahrenheit` and `WIND_SPEED_UNIT=mph`.
 - **Want a morning forecast?** Set `FORECAST_HOUR=7` to get the day's high, low, and conditions at 7am. All other update hours still give current conditions.
 - **Want to use Visual Crossing?** Set `WEATHER_PROVIDER=visualcrossing` and add your `VISUALCROSSING_API_KEY`. Get a free key at [visualcrossing.com](https://www.visualcrossing.com/).
+- **Get pressure-change headaches?** Set `SURFACE_PRESSURE=true` to have your kin notice when barometric pressure is dropping. More on this below.
 
 ---
 
@@ -134,6 +136,47 @@ If a fetch fails, the last successful scene is kept until the next successful up
 **Visual Crossing** requires a free account and API key from [visualcrossing.com](https://www.visualcrossing.com/). To use it, set `WEATHER_PROVIDER=visualcrossing` and provide your key in `VISUALCROSSING_API_KEY`. Visual Crossing's icon-based conditions are mapped to WMO codes internally, so the output format is the same regardless of provider. Note that Visual Crossing uses peak wind gust (rather than mean wind speed) for daily forecasts to better match Open-Meteo's behavior.
 
 **Note:** Location name and region are optional. If set, they appear in the scene (e.g. *"here in Seabreak, British Columbia"*). If not, current conditions say *"outside"* and forecasts just say *"Today's forecast:"* — useful if the location is already in your kin's backstory.
+
+---
+
+## Surface pressure (opt-in)
+
+Drops in barometric pressure are a well-known trigger for migraines, sinus headaches, and joint pain. If you set `SURFACE_PRESSURE=true`, weather-kin will start tracking pressure trends and adding a short phrase to the scene when pressure has dropped meaningfully — so your kin can react to it the same way they'd react to the rain rolling in.
+
+This is **off by default**. Most users won't notice it; if you're not weather-sensitive there's no reason to turn it on.
+
+### How it works
+
+- weather-kin keeps a rolling 24-hour history of pressure readings on disk (alongside the existing state file — no setup needed).
+- On each update tick, it compares the current pressure to the peak of the past 24 hours.
+- If pressure has dropped **3 hPa or more**, a "low pressure" phrase is appended to the scene.
+- If pressure has dropped **5 hPa or more** (typical of an incoming storm front), a stronger "moving in fast" phrase is used.
+- The phrase keeps appearing on every tick while pressure stays low — not just once — so the warning is always visible in Current Setting when you look. It disappears once pressure rebounds.
+
+### Example output
+
+> It's currently 12°C and partly cloudy. Low pressure is moving in.
+
+> Current weather is 8°C and rainy here in Seabreak, British Columbia, with strong winds. Low pressure persists.
+
+> Today's weather forecast for Seabreak: a high of 14°C and a low of 5°C, rainy. A low-pressure system is moving in fast.
+
+### Fitting the 160-character limit
+
+Kindroid's Current Setting has a 160-character cap. The full atmospheric phrasing above ("Low pressure is moving in.", "A low-pressure system is moving in fast.", etc.) is the default, but on long scenes — like when a major weather transition is *also* firing — the scene would exceed 160 characters. In those cases weather-kin automatically falls back to a terse version of the same phrase so the warning still gets through:
+
+| Atmospheric | Terse fallback |
+|---|---|
+| Low pressure is moving in. | Pressure dropping. |
+| A low-pressure system is moving in fast. | Pressure dropping fast. |
+| Low pressure persists. | Pressure low. |
+| Pressure remains very low. | Pressure very low. |
+
+The medical signal is preserved no matter how long the rest of the scene gets.
+
+### Tip: more frequent ticks = earlier warning
+
+The earliest you'll see a pressure warning is the next scheduled update after the drop crosses the threshold. On the default 6-hour schedule that means up to 6 hours of latency; on a 3-hour schedule (`UPDATE_HOURS=0,3,6,9,12,15,18,21`) it's at most 3 hours. If you're using this feature for pre-emptive medication timing, a tighter schedule is worth setting.
 
 ---
 

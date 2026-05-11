@@ -16,6 +16,7 @@
 //   WIND_SPEED_UNIT        - "kmh" or "mph" (default: kmh)
 //   UPDATE_HOURS           - Comma-separated hours to update (default: "0,6,12,18")
 //   FORECAST_HOUR          - Hour (0-23) to send a daily forecast instead of current conditions
+//   SURFACE_PRESSURE       - "true" to include barometric pressure drop warnings (default: false)
 
 const http = require("http");
 const fs = require("fs");
@@ -60,6 +61,7 @@ const CONFIG = {
       return n;
     })
     .sort((a, b) => a - b),
+  surfacePressure: (optionalEnv("SURFACE_PRESSURE", "false").toLowerCase() === "true"),
   forecastHour: process.env.FORECAST_HOUR != null
     ? (() => {
         const n = Number(process.env.FORECAST_HOUR);
@@ -93,6 +95,7 @@ const OPEN_METEO_URL =
   "https://api.open-meteo.com/v1/forecast" +
   `?latitude=${CONFIG.latitude}&longitude=${CONFIG.longitude}` +
   "&current=temperature_2m,weather_code,wind_speed_10m" +
+  (CONFIG.surfacePressure ? ",surface_pressure" : "") +
   (CONFIG.forecastHour != null
     ? "&daily=temperature_2m_max,temperature_2m_min,weather_code,wind_speed_10m_max&forecast_days=1"
     : "") +
@@ -468,12 +471,19 @@ async function fetchVisualCrossing() {
     return unitGroup === "metric" ? speed / 1.609 : speed * 1.609;
   };
 
+  // VisualCrossing pressure: mb (== hPa) in metric, inHg in US. Normalize to hPa.
+  const vcPressure = vc.currentConditions.pressure;
+  const pressureHPa = vcPressure == null
+    ? null
+    : (unitGroup === "us" ? vcPressure * 33.8639 : vcPressure);
+
   // Normalize to Open-Meteo shape so formatScene/formatForecast work unchanged.
   const normalized = {
     current: {
       temperature_2m: vc.currentConditions.temp,
       weather_code: refineVCWeatherCode(vc.currentConditions.icon, vc.currentConditions.conditions),
       wind_speed_10m: convertWind(vc.currentConditions.windspeed),
+      surface_pressure: pressureHPa,
     },
   };
 
@@ -514,9 +524,17 @@ function loadState() {
       lastCondition: saved.lastCondition ?? UNSET,
       lastWindDescription: saved.lastWindDescription === undefined ? UNSET : saved.lastWindDescription,
       lastScene: saved.lastScene ?? null,
+      pressureHistory: Array.isArray(saved.pressureHistory) ? saved.pressureHistory : [],
+      lastPressureState: saved.lastPressureState ?? "normal",
     };
   } catch {
-    return { lastCondition: UNSET, lastWindDescription: UNSET, lastScene: null };
+    return {
+      lastCondition: UNSET,
+      lastWindDescription: UNSET,
+      lastScene: null,
+      pressureHistory: [],
+      lastPressureState: "normal",
+    };
   }
 }
 
@@ -525,6 +543,8 @@ function saveState() {
     lastCondition: lastCondition === UNSET ? undefined : lastCondition,
     lastWindDescription: lastWindDescription === UNSET ? undefined : lastWindDescription,
     lastScene,
+    pressureHistory,
+    lastPressureState,
     savedAt: new Date().toISOString(),
   };
   try {
@@ -541,6 +561,75 @@ const UNSET = Symbol("unset");
 const restored = loadState();
 let lastCondition = restored.lastCondition;
 let lastWindDescription = restored.lastWindDescription;
+let pressureHistory = restored.pressureHistory;
+let lastPressureState = restored.lastPressureState;
+
+// --- Pressure (opt-in via SURFACE_PRESSURE=true) ---
+// Drops in barometric pressure are a well-known migraine/headache trigger.
+// We track a rolling 24h window of readings and compare current to the recent
+// peak. The phrase is emitted on every tick while pressure is low (not just on
+// the threshold-crossing tick) so the warning stays visible in Current Setting.
+// Arrival vs sustained phrasing varies; if the atmospheric phrasing would push
+// the scene past 160 chars (Kindroid's Current Setting limit), we fall back to
+// a terse phrase so the medical signal always survives.
+
+const PRESSURE_WINDOW_MS = 24 * 60 * 60 * 1000;
+const PRESSURE_NOTABLE_DROP = 3; // hPa
+const PRESSURE_STEEP_DROP = 5;   // hPa
+const SCENE_CHAR_LIMIT = 160;
+
+const PRESSURE_PHRASES = new Map([
+  // arrival = state changed from normal to non-normal (or escalated to steep)
+  ["arrival-notable", { atmospheric: "Low pressure is moving in.", terse: "Pressure dropping." }],
+  ["arrival-steep",   { atmospheric: "A low-pressure system is moving in fast.", terse: "Pressure dropping fast." }],
+  // sustained = still in the same non-normal state as last tick
+  ["sustained-notable", { atmospheric: "Low pressure persists.", terse: "Pressure low." }],
+  ["sustained-steep",   { atmospheric: "Pressure remains very low.", terse: "Pressure very low." }],
+]);
+
+function classifyPressureDrop(currentHPa) {
+  // Compute drop against history *before* adding the current reading, so the
+  // "peak" is a past observation, not this one.
+  if (pressureHistory.length === 0) return "normal";
+  const peak = Math.max(...pressureHistory.map((r) => r.hPa));
+  const drop = peak - currentHPa;
+  if (drop >= PRESSURE_STEEP_DROP) return "steep";
+  if (drop >= PRESSURE_NOTABLE_DROP) return "notable";
+  return "normal";
+}
+
+function recordPressure(currentHPa) {
+  const now = Date.now();
+  pressureHistory.push({ ts: now, hPa: currentHPa });
+  pressureHistory = pressureHistory.filter((r) => now - r.ts <= PRESSURE_WINDOW_MS);
+}
+
+// Returns { atmospheric, terse } or null. Also advances lastPressureState.
+function pressurePhrase(currentHPa) {
+  if (!CONFIG.surfacePressure || currentHPa == null) return null;
+
+  const newState = classifyPressureDrop(currentHPa);
+  recordPressure(currentHPa);
+
+  const prev = lastPressureState;
+  lastPressureState = newState;
+
+  if (newState === "normal") return null;
+
+  // Treat notable→steep as a fresh steep arrival (the severity has changed).
+  // Treat steep→notable as a sustained-notable (pressure eased but still low).
+  const isArrival = (newState === "notable" && prev !== "notable") ||
+                    (newState === "steep" && prev !== "steep");
+  const key = `${isArrival ? "arrival" : "sustained"}-${newState}`;
+  return PRESSURE_PHRASES.get(key);
+}
+
+function appendPressure(scene, phrase) {
+  if (!phrase) return scene;
+  const withAtmospheric = `${scene} ${phrase.atmospheric}`;
+  if (withAtmospheric.length <= SCENE_CHAR_LIMIT) return withAtmospheric;
+  return `${scene} ${phrase.terse}`;
+}
 
 // --- Scene formatting with transitions ---
 
@@ -694,6 +783,8 @@ function formatScene(data) {
   lastCondition = conditions;
   lastWindDescription = windPart;
 
+  scene = appendPressure(scene, pressurePhrase(current.surface_pressure));
+
   return scene;
 }
 
@@ -723,6 +814,8 @@ function formatForecast(data) {
   const locationSuffix = location.length ? ` for ${location.join(", ")}` : "";
   let scene = `Today's weather forecast${locationSuffix}: a high of ${high}${TEMP_SYMBOL} and a low of ${low}${TEMP_SYMBOL}, ${conditions}.`;
   if (windLine) scene += ` ${windLine}`;
+
+  scene = appendPressure(scene, pressurePhrase(data.current?.surface_pressure));
 
   return scene;
 }
