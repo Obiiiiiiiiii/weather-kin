@@ -1,3 +1,4 @@
 node_modules/
 .env
 .weather-state.json
+__pycache__/
