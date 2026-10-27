@@ -14,6 +14,10 @@ Supports two weather providers:
 
 > Today's weather forecast for Seabreak, British Columbia: a high of 14°C and a low of 5°C, rainy. It's expected to be windy.
 
+### Bonus: taskbar widget (Windows)
+
+Want the same weather on your PC? The [`tray/`](tray/) folder has a small Python system-tray app that shows the current temperature in your taskbar using the same settings. See [tray/README.md](tray/README.md).
+
 ---
 
 ## What you'll need

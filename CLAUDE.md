@@ -6,6 +6,7 @@ Single-file Node.js service (`index.js`) that polls Open-Meteo for weather and u
 
 - `index.js` — entire application (no dependencies beyond Node built-ins)
 - `.env.example` — template for required/optional environment variables
+- `tray/` — standalone Python (pystray) Windows tray app that fetches the same weather directly; mirrors `WMO_CONDITIONS`, `VC_ICON_TO_WMO`, and wind thresholds from `index.js`, so keep them in sync
 
 ## Key details
 
