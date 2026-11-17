@@ -898,9 +898,14 @@ async function tick() {
 
 const PORT = process.env.PORT || 3000;
 
+// SCENE_MODE=true swaps the weather-only line for scene.js (outfit, place and light from the chat).
+const SCENE_MODE = (process.env.SCENE_MODE || "").toLowerCase() === "true";
+let scene = null;
+
 const server = http.createServer((req, res) => {
+  if (scene && scene.handle(req, res)) return;
   res.writeHead(200, { "Content-Type": "application/json" });
-  res.end(JSON.stringify({ status: "ok", lastScene }));
+  res.end(JSON.stringify({ status: "ok", mode: SCENE_MODE ? "scene" : "weather", lastScene: scene ? scene.lastScene() : lastScene }));
 }).listen(PORT, () => {
   console.log(`Health check listening on port ${PORT}`);
 });
@@ -921,5 +926,13 @@ process.on("SIGTERM", () => {
 // --- Start ---
 
 console.log(`Weather provider: ${CONFIG.weatherProvider}`);
-console.log(`Update schedule: ${CONFIG.updateHours.map((h) => `${h}:00`).join(", ")}`);
-tickInFlight = tick().finally(() => { tickInFlight = null; scheduleNext(); });
+if (SCENE_MODE) {
+  console.log("SCENE_MODE on: writing outfit, place and light from the chat instead of the weather-only line.");
+  scene = require("./scene.js").start({
+    CONFIG, kindroidBase: KINDROID_BASE, fetchWeather, WMO_CONDITIONS, TEMP_SYMBOL, describeWind, updateCurrentScene, stateDir: STATE_DIR,
+  });
+  tickInFlight = scene.firstTick.finally(() => { tickInFlight = null; });
+} else {
+  console.log(`Update schedule: ${CONFIG.updateHours.map((h) => `${h}:00`).join(", ")}`);
+  tickInFlight = tick().finally(() => { tickInFlight = null; scheduleNext(); });
+}

@@ -4,7 +4,9 @@ Single-file Node.js service (`index.js`) that polls Open-Meteo for weather and u
 
 ## Structure
 
-- `index.js` — entire application (no dependencies beyond Node built-ins)
+- `index.js` — the weather service (no dependencies beyond Node built-ins)
+- `scene.js` — opt-in `SCENE_MODE`: reads the chat, asks Claude Haiku for outfit/place, writes outfit + place + light. Started from the bottom of `index.js`; the weather schedule doesn't run in scene mode.
+- `light.js` — sun elevation → light phrase (dawn, golden hour, dusk, night...)
 - `.env.example` — template for required/optional environment variables
 
 ## Key details
@@ -19,3 +21,4 @@ Single-file Node.js service (`index.js`) that polls Open-Meteo for weather and u
 - Wind thresholds adjust based on `WIND_SPEED_UNIT` (km/h vs mph) — see `describeWind()` and `describeForecastWind()`.
 - A minimal HTTP health check server keeps Railway from killing the process.
 - On fetch failure the last successful scene is retained — do not add logic to clear it.
+- In anything the Kin reads, the user's name comes from `USER_NAME`, never a hard-coded name.

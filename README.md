@@ -180,6 +180,30 @@ The earliest you'll see a pressure warning is the next scheduled update after th
 
 ---
 
+## Scene mode (opt-in)
+
+Set `SCENE_MODE=true` and, instead of a weather-only line, weather-kin keeps your Kin's Current/Scene Setting true to the chat: what he's wearing, where he is, and the light outside.
+
+> Sam is wearing a flannel shirt and work jeans. He's in the garage. Outside, it's golden hour, the sun going down.
+
+Every `SCENE_INTERVAL_MIN` minutes it reads new chat messages from Kindroid. When one looks like a change of clothes or place (a cheap local word check), it asks Claude Haiku what he's wearing and where he is *right now* (inferred from what he's doing, so car work means the garage). The light comes from the sun's real height at `LIGHT_LATITUDE`/`LIGHT_LONGITUDE`, with no extra API. The line is written only when it changes, and always fits in 160 characters. A place nobody's mentioned in `PLACE_HOURS` drops out of the line; an outfit falls back to `DEFAULT_OUTFIT` after `OUTFIT_HOURS`. The weather-only schedule is off while scene mode is on.
+
+| Variable | Default | What it does |
+|---|---|---|
+| `SCENE_MODE` | `false` | Turn scene mode on |
+| `ANTHROPIC_API_KEY` | *(none)* | Your Anthropic API key, for Haiku. Without it, only the light (and weather, if on) is written |
+| `KIN_NAME` | *(none)* | Your Kin's name, used in the line (e.g. `Sam`) |
+| `USER_NAME` | `the user` | What the Kin calls you; the only name Haiku is allowed to use for you (e.g. `Alex`) |
+| `KIN_STYLE` | *(none)* | His usual style, so Haiku can pick a plausible outfit when the chat hasn't said |
+| `DEFAULT_OUTFIT` | *(none)* | Fallback outfit, e.g. `a fitted t-shirt, flannel shirt and jeans` |
+| `LIGHT_LATITUDE` / `LIGHT_LONGITUDE` | `LATITUDE` / `LONGITUDE` | Where the light is worked out for (e.g. where *you* are, so it matches his clock) |
+| `LIGHT_TZ` | `TZ` | Time zone for morning/afternoon/evening, e.g. `America/Vancouver` |
+| `SCENE_INTERVAL_MIN` | `5` | How often to check the chat (minimum 2). Kindroid allows 600 chat reads a day |
+| `PLACE_HOURS` / `OUTFIT_HOURS` | `2` / `10` | How long a place / outfit stays without the chat backing it up |
+| `SCENE_WEATHER` | `false` | `true` adds a short weather bit, e.g. `, 9°C and overcast with strong winds` |
+| `HAIKU_MODEL` | `claude-haiku-5-5` | Model id |
+| `PHONE_TOKEN` | *(none)* | Turns on `POST /phone?token=…` (`{"lat":..,"lon":..}`) so the light follows your phone, and `POST /scene?token=…` (`{"outfit":..,"place":..}`) to fix the scene by hand |
+
 ## License
 
 MIT
